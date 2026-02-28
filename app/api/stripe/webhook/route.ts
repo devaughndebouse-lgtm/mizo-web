@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +14,12 @@ export async function POST(req: Request) {
   if (!webhookSecret)
     return NextResponse.json({ error: "Missing STRIPE_WEBHOOK_SECRET" }, { status: 500 });
 
-  const stripe = new Stripe(secret);
+ const secretKey = process.env.STRIPE_SECRET_KEY;
+if (!secretKey) {
+  return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
+}
 
+const stripe = new Stripe(secretKey);
   const sig = req.headers.get("stripe-signature");
   if (!sig)
     return NextResponse.json({ error: "Missing stripe-signature" }, { status: 400 });
