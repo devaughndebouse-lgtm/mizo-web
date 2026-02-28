@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!webhookSecret)
     return NextResponse.json({ error: "Missing STRIPE_WEBHOOK_SECRET" }, { status: 500 });
 
-  const stripe = new Stripe(secretKey, { apiVersion: "2023-10-16" });
+  const stripe = new Stripe(secret);
 
   const sig = req.headers.get("stripe-signature");
   if (!sig)
