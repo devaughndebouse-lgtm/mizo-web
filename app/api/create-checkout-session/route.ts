@@ -22,7 +22,7 @@ export async function POST() {
         { status: 500 }
       );
 
-    const stripe = new Stripe(secret, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(secret);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
