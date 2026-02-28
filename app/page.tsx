@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type ChoiceId = "A" | "B" | "C" | "D";
@@ -425,7 +425,7 @@ function buildExamSteps(total: number) {
   return steps.slice(0, total);
 }
 
-export default function Page() {
+function PageInner() {
   const [tab, setTab] = useState<"practice" | "exam">("practice");
   const [topic, setTopic] = useState<TopicId>("mixed");
   const [style, setStyle] = useState<ExamStyle>("training");
@@ -856,5 +856,13 @@ export default function Page() {
 
       <section className="text-xs opacity-70">MVP: Next we expand to 100+ questions, add login + Stripe ($79/mo), and store progress.</section>
     </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <PageInner />
+    </Suspense>
   );
 }
