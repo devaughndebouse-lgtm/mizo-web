@@ -1,55 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const secretKey = process.env.STRIPE_SECRET_KEY;
-if (!secretKey) {
-  throw new Error("Missing STRIPE_SECRET_KEY");
-}
+export async function GET(req: NextRequest) {
+  const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!secretKey) {
+    return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
+  }
 
-const stripe = new Stripe(secretKey);
+  const stripe = new Stripe(secretKey);
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const session_id = searchParams.get("session_id");
+  const url = new URL(req.url);
+  const sessionId = url.searchParams.get("session_id");
 
-  if (!session_id) {
+  if (!sessionId) {
     return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(session_id);
-
-    if (!session.subscription || typeof session.subscription !== "string") {
-      return NextResponse.json(
-        { error: "No subscription found on session" },
-        { status: 400 }
-      );
-    }
-
-    const subscription = await stripe.subscriptions.retrieve(session.subscription);
-
-    if (subscription.status !== "active" && subscription.status !== "trialing") {
-      return NextResponse.json(
-        { error: `Subscription not active (${subscription.status})` },
-        { status: 403 }
-      );
-    }
-
-    const response = NextResponse.json({ ok: true });
-
-    response.cookies.set("mizo_sub", "1", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-
-    return response;
-  } catch (err) {
-    console.error("Verify session error:", err);
-    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    return NextResponse.json({ session });
+  } catch (err: any) {
+    console.error("Failed to verify session:", err?.message ?? err);
+    return NextResponse.json({ error: "Failed to verify session" }, { status: 500 });
   }
 }
