@@ -1,5 +1,3 @@
-// REPLACED WITH COMPLETE FILE BELOW
-
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +33,19 @@ type Problem = {
   refs: string[];
 };
 
+type ExamStyle = "training" | "strict";
+
+type ExamAnswer = {
+  problemId: string;
+  picked: ChoiceId | null;
+  correct: boolean;
+  problem: Problem;
+};
+
+const EXAM_TOTAL_QUESTIONS = 50;
+const EXAM_TOTAL_SECONDS = 2 * 60 * 60; // 2 hours
+const PASS_PCT = 70;
+
 const TOPICS: Array<{ id: TopicId; label: string }> = [
   { id: "mixed", label: "Mixed" },
   { id: "definitions", label: "Definitions / Plans" },
@@ -52,7 +63,6 @@ const TOPICS: Array<{ id: TopicId; label: string }> = [
 ];
 
 function nextStandardBreakerSize(amps: number): number {
-  // Common standard sizes (NEC 240.6). Keep it simple for training.
   const sizes = [15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 125, 150, 175, 200];
   for (const s of sizes) if (amps <= s) return s;
   return 200;
@@ -72,6 +82,16 @@ function randInt(min: number, max: number) {
 
 function fmtVA(va: number) {
   return `${Math.round(va).toLocaleString()} VA`;
+}
+
+function formatClock(totalSeconds: number) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  const mm = String(m).padStart(2, "0");
+  const sss = String(ss).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${sss}` : `${m}:${sss}`;
 }
 
 // ---------- Question generators ----------
@@ -385,8 +405,6 @@ const JOURNEYMAN_CALC_PLAN: Array<[TopicId, number]> = [
   ["renewable", 1],
 ];
 
-type ExamStyle = "training" | "strict";
-
 function buildSteps(plan: Array<[TopicId, number]>, portion: "knowledge" | "calculations") {
   const steps: Array<{ portion: "knowledge" | "calculations"; topic: TopicId }> = [];
   for (const [t, n] of plan) for (let i = 0; i < n; i++) steps.push({ portion, topic: t });
@@ -402,8 +420,9 @@ function shuffle<T>(arr: T[]) {
   return a;
 }
 
-function paceSeconds(portion: "knowledge" | "calculations") {
-  return portion === "knowledge" ? Math.round((130 * 60) / 59) : Math.round((110 * 60) / 26);
+function buildExamSteps(total: number) {
+  const steps = [...shuffle(buildSteps(JOURNEYMAN_KNOWLEDGE_PLAN, "knowledge")), ...shuffle(buildSteps(JOURNEYMAN_CALC_PLAN, "calculations"))];
+  return steps.slice(0, total);
 }
 
 export default function Page() {
@@ -411,6 +430,8 @@ export default function Page() {
   const [topic, setTopic] = useState<TopicId>("mixed");
   const [style, setStyle] = useState<ExamStyle>("training");
   const [showRefs, setShowRefs] = useState(true);
+  const effectiveShowRefs = tab === "exam" ? false : showRefs;
+
   const searchParams = useSearchParams();
   const success = searchParams.get("success") === "true";
   const canceled = searchParams.get("canceled") === "true";
@@ -427,27 +448,30 @@ export default function Page() {
   const [examIndex, setExamIndex] = useState(0);
   const [portion, setPortion] = useState<"knowledge" | "calculations">("knowledge");
 
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
-  const timerRef = useRef<number | null>(null);
+  const [examQuestions, setExamQuestions] = useState<Problem[]>([]);
+  const [examAnswers, setExamAnswers] = useState<ExamAnswer[]>([]);
+  const [examFinished, setExamFinished] = useState(false);
+
+  const [examSecondsLeft, setExamSecondsLeft] = useState<number | null>(null);
+  const examTimerRef = useRef<number | null>(null);
 
   const pct = useMemo(() => (scoreA ? Math.round((scoreC / scoreA) * 100) : 0), [scoreA, scoreC]);
 
-  function clearTimer() {
-    if (timerRef.current) {
-      window.clearInterval(timerRef.current);
-      timerRef.current = null;
+  function clearExamTimer() {
+    if (examTimerRef.current) {
+      window.clearInterval(examTimerRef.current);
+      examTimerRef.current = null;
     }
   }
 
-  function startTimerFor(p: "knowledge" | "calculations") {
-    clearTimer();
-    const s = paceSeconds(p);
-    setSecondsLeft(s);
-    timerRef.current = window.setInterval(() => {
-      setSecondsLeft((prev) => {
+  function startExamTimer(totalSeconds: number) {
+    clearExamTimer();
+    setExamSecondsLeft(totalSeconds);
+    examTimerRef.current = window.setInterval(() => {
+      setExamSecondsLeft((prev) => {
         if (prev === null) return prev;
         if (prev <= 1) {
-          clearTimer();
+          clearExamTimer();
           return 0;
         }
         return prev - 1;
@@ -462,7 +486,6 @@ export default function Page() {
     const qq = pickQuestion(topic, "mixed");
     setQ(qq);
     setPortion(qq.portion);
-    setSecondsLeft(null);
   }
 
   function startExam() {
@@ -472,24 +495,36 @@ export default function Page() {
     setSelected(null);
     setResult(null);
     setReveal(false);
+    setExamFinished(false);
+    setExamAnswers([]);
 
-    const steps = [...shuffle(buildSteps(JOURNEYMAN_KNOWLEDGE_PLAN, "knowledge")), ...shuffle(buildSteps(JOURNEYMAN_CALC_PLAN, "calculations"))];
+    const steps = buildExamSteps(EXAM_TOTAL_QUESTIONS);
     setExamSteps(steps);
     setExamIndex(0);
 
-    const first = steps[0];
-    const qq = pickQuestion(first.topic, first.portion);
+    const questions = steps.map((s) => pickQuestion(s.topic, s.portion));
+    setExamQuestions(questions);
+
+    const first = questions[0] ?? null;
+    if (!first) {
+      setQ(null);
+      setExamFinished(true);
+      return;
+    }
+
     setPortion(first.portion);
-    setQ(qq);
-    startTimerFor(first.portion);
+    setQ(first);
+
+    startExamTimer(EXAM_TOTAL_SECONDS);
   }
 
-  function nextExamQuestion(idx: number, steps: Array<{ portion: "knowledge" | "calculations"; topic: TopicId }>) {
-    const next = steps[idx];
+  function nextExamQuestion(idx: number) {
+    const next = examQuestions[idx];
     if (!next) {
-      clearTimer();
-      setSecondsLeft(null);
+      clearExamTimer();
+      setExamSecondsLeft(null);
       setQ(null);
+      setExamFinished(true);
       return;
     }
 
@@ -498,8 +533,7 @@ export default function Page() {
     setReveal(false);
 
     setPortion(next.portion);
-    setQ(pickQuestion(next.topic, next.portion));
-    startTimerFor(next.portion);
+    setQ(next);
   }
 
   function grade(choice: ChoiceId) {
@@ -517,20 +551,30 @@ export default function Page() {
       return;
     }
 
+    setExamAnswers((prev) => [
+      ...prev,
+      {
+        problemId: q.id,
+        picked: choice,
+        correct: ok,
+        problem: q,
+      },
+    ]);
+
     if (style === "training") setReveal(true);
   }
 
-  // exam timeout
+  // exam-wide timeout
   useEffect(() => {
     if (tab !== "exam") return;
-    if (!q) return;
+    if (examSecondsLeft === null) return;
 
-    if (secondsLeft === 0 && result === null) {
-      setScoreA((a) => a + 1);
-      setResult("incorrect");
-      if (style === "training") setReveal(true);
+    if (examSecondsLeft === 0) {
+      clearExamTimer();
+      setQ(null);
+      setExamFinished(true);
     }
-  }, [secondsLeft, tab, q, result, style]);
+  }, [examSecondsLeft, tab]);
 
   // exam auto-advance
   useEffect(() => {
@@ -538,15 +582,15 @@ export default function Page() {
     if (!q) return;
     if (!result) return;
 
-    const delay = style === "training" ? 2500 : 250;
+    const delay = style === "training" ? 1200 : 250;
     const t = window.setTimeout(() => {
       const nextIdx = examIndex + 1;
       setExamIndex(nextIdx);
-      nextExamQuestion(nextIdx, examSteps);
+      nextExamQuestion(nextIdx);
     }, delay);
 
     return () => window.clearTimeout(t);
-  }, [result, tab, q, style, examIndex, examSteps]);
+  }, [result, tab, q, style, examIndex, examQuestions]);
 
   // initial
   useEffect(() => {
@@ -566,18 +610,16 @@ export default function Page() {
           <button
             className={`rounded px-3 py-2 text-sm ${tab === "practice" ? "bg-black text-white" : "bg-neutral-200"}`}
             onClick={() => {
-              clearTimer();
-              setSecondsLeft(null);
+              clearExamTimer();
+              setExamSecondsLeft(null);
+              setExamFinished(false);
               setTab("practice");
               newPracticeQuestion();
             }}
           >
             Practice
           </button>
-          <button
-            className={`rounded px-3 py-2 text-sm ${tab === "exam" ? "bg-black text-white" : "bg-neutral-200"}`}
-            onClick={() => startExam()}
-          >
+          <button className={`rounded px-3 py-2 text-sm ${tab === "exam" ? "bg-black text-white" : "bg-neutral-200"}`} onClick={() => startExam()}>
             Exam Simulator
           </button>
           <button
@@ -632,7 +674,13 @@ export default function Page() {
             </select>
 
             <label className="ml-2 flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={showRefs} onChange={(e) => setShowRefs(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={showRefs}
+                onChange={(e) => setShowRefs(e.target.checked)}
+                disabled={tab === "exam"}
+                title={tab === "exam" ? "NEC refs hidden during exam" : ""}
+              />
               Show NEC refs
             </label>
           </div>
@@ -645,7 +693,79 @@ export default function Page() {
 
       <section className="rounded-lg border bg-white p-4 shadow-sm text-black">
         {!q ? (
-          <div className="text-sm">Exam complete. Your score is above.</div>
+          <div className="text-sm">
+            {tab === "exam" && examFinished ? (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <div className="text-base font-semibold">Exam complete</div>
+                  <div className="mt-1">
+                    <span className="font-medium">Score:</span> {scoreC}/{scoreA} ({pct}%)
+                    {scoreA > 0 && (
+                      <span className="ml-2">
+                        {pct >= PASS_PCT ? (
+                          <span className="font-semibold text-green-700">PASS</span>
+                        ) : (
+                          <span className="font-semibold text-red-700">FAIL</span>
+                        )}
+                        <span className="ml-2 opacity-70">(Pass mark: {PASS_PCT}%)</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 text-xs opacity-70">
+                    {EXAM_TOTAL_QUESTIONS} questions • {formatClock(EXAM_TOTAL_SECONDS)} total time
+                  </div>
+                </div>
+
+                <div className="rounded border bg-neutral-50 p-3">
+                  <div className="text-sm font-semibold">Review missed questions</div>
+                  {examAnswers.filter((a) => !a.correct).length === 0 ? (
+                    <div className="mt-2 text-sm">✅ No missed questions in this attempt.</div>
+                  ) : (
+                    <div className="mt-2 grid gap-3">
+                      {examAnswers
+                        .filter((a) => !a.correct)
+                        .slice(0, 10)
+                        .map((a) => (
+                          <div key={a.problemId} className="rounded border bg-white p-3">
+                            <div className="text-xs uppercase tracking-wide opacity-70">
+                              {a.problem.topic} • {a.problem.portion}
+                            </div>
+                            <div className="mt-1 text-sm font-medium">{a.problem.prompt}</div>
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">Correct:</span> {a.problem.correctChoiceId}) {a.problem.answerText}
+                            </div>
+                            <div className="mt-1 text-sm">
+                              <span className="font-medium">You picked:</span> {a.picked ?? "—"}
+                            </div>
+                          </div>
+                        ))}
+                      {examAnswers.filter((a) => !a.correct).length > 10 && <div className="text-xs opacity-70">Showing first 10 missed questions.</div>}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button className="rounded bg-black px-3 py-2 text-sm text-white" onClick={() => startExam()}>
+                    Start New Exam
+                  </button>
+                  <button
+                    className="rounded bg-neutral-200 px-3 py-2 text-sm"
+                    onClick={() => {
+                      clearExamTimer();
+                      setExamSecondsLeft(null);
+                      setTab("practice");
+                      setExamFinished(false);
+                      newPracticeQuestion();
+                    }}
+                  >
+                    Back to Practice
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>Exam complete. Your score is above.</div>
+            )}
+          </div>
         ) : (
           <>
             <div className="flex flex-col gap-2">
@@ -653,11 +773,16 @@ export default function Page() {
                 <div className="text-xs uppercase tracking-wide opacity-70">
                   {tab === "exam" ? "Exam" : "Practice"} • {portion}
                 </div>
-                {secondsLeft !== null && <div className="text-xs font-semibold">Time: {secondsLeft}s</div>}
+                {tab === "exam" && examSecondsLeft !== null && <div className="text-xs font-semibold">Time left: {formatClock(examSecondsLeft)}</div>}
+                {tab === "exam" && (
+                  <div className="text-xs opacity-70">
+                    Q {Math.min(examIndex + 1, examSteps.length)} / {examSteps.length}
+                  </div>
+                )}
               </div>
 
               <div className="text-base font-medium text-black">{q.prompt}</div>
-              {showRefs && <div className="text-xs text-black opacity-80">NEC: {q.refs.join(", ")}</div>}
+              {effectiveShowRefs && <div className="text-xs text-black opacity-80">NEC: {q.refs.join(", ")}</div>}
             </div>
 
             <div className="mt-4 grid gap-2">
