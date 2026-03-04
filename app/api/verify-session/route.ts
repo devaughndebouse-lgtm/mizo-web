@@ -1,76 +1,136 @@
-import Stripe from "stripe";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, error: message }, { status });
+  // Gate the simulator behind a cookie set after successful Stripe verification.
+  if (!pathname.startsWith("/app")) return NextResponse.next();
+
+  const access = request.cookies.get("mizo_access")?.value;
+
+  if (!access) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.searchParams.set("reason", "subscribe");
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
-export async function GET(req: NextRequest) {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) return jsonError("Missing STRIPE_SECRET_KEY", 500);
+export const config = {
+  matcher: ["/app/:path*"],
+};
+"use client";
 
-  const stripe = new Stripe(secretKey);
+import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-  const url = new URL(req.url);
-  const sessionId =
-    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  if (!sessionId) return jsonError("Missing session_id");
+  // After Stripe redirects back, verify the session and then send the user into /app.
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const sessionId =
+      searchParams.get("session_id") || searchParams.get("sessionId");
 
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["subscription"],
-    });
+    if (success !== "true" || !sessionId) return;
 
-    let subscriptionStatus: string | null = null;
-    let isActive = false;
+    let cancelled = false;
+    (async () => {
+      try {
+        setVerifying(true);
+        setVerifyError(null);
 
-    if (session.mode === "subscription" && session.subscription) {
-      const subscription =
-        typeof session.subscription === "string"
-          ? await stripe.subscriptions.retrieve(session.subscription)
-          : session.subscription;
+        const res = await fetch(
+          `/api/verify-session?session_id=${encodeURIComponent(sessionId)}`,
+          { cache: "no-store" }
+        );
+        const data = await res.json();
 
-      subscriptionStatus = subscription.status;
+        if (cancelled) return;
 
-      if (subscription.status === "active" || subscription.status === "trialing") {
-        isActive = true;
+        if (!res.ok || !data?.ok || !data?.access) {
+          setVerifyError(
+            data?.error || "Payment verified, but access was not granted."
+          );
+          setVerifying(false);
+          return;
+        }
+
+        // Cookie is now set; go to the simulator.
+        router.replace("/app");
+      } catch (e: any) {
+        if (cancelled) return;
+        setVerifyError(e?.message || "Failed to verify payment.");
+        setVerifying(false);
       }
-    }
+    })();
 
-    const paymentComplete =
-      session.payment_status === "paid" || isActive;
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
-    const res = NextResponse.json({
-      ok: true,
-      id: session.id,
-      status: session.status,
-      payment_status: session.payment_status,
-      mode: session.mode,
-      subscription: session.subscription,
-      subscription_status: subscriptionStatus,
-      customer: session.customer,
-      access: paymentComplete,
-    });
+  return (
+    <main style={{ padding: "40px", maxWidth: "900px", margin: "0 auto" }}>
+      <h1 style={{ fontSize: "42px", fontWeight: "bold" }}>
+        Pass Your Journeyman Exam With Confidence.
+      </h1>
 
-    // If paid (or active/trialing subscription), set an httpOnly cookie we can use to gate the app.
-    if (paymentComplete) {
-      res.cookies.set({
-        name: "mizo_access",
-        value: "1",
-        httpOnly: false,
-        sameSite: "lax",
-        secure: true,
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      });
-    }
+      <p style={{ fontSize: "20px", marginTop: "20px" }}>
+        NEC-referenced practice. Real exam simulations. Clear step-by-step
+        explanations built for working electricians.
+      </p>
 
-    return res;
-  } catch (err: any) {
-    return jsonError(err?.message ?? "Failed to verify session", 500);
-  }
+      {verifying && <p style={{ marginTop: "16px" }}>Verifying payment…</p>}
+
+      {verifyError && <p style={{ marginTop: "16px" }}>{verifyError}</p>}
+
+      <div style={{ marginTop: "40px" }}>
+        <a
+          href="/app"
+          style={{
+            background: "#111",
+            color: "#fff",
+            padding: "14px 24px",
+            textDecoration: "none",
+            borderRadius: "8px",
+            fontSize: "18px",
+            display: "inline-block",
+          }}
+        >
+          Start Training — $79/month
+        </a>
+      </div>
+
+      <section style={{ marginTop: "80px" }}>
+        <h2>Why Mizo Works</h2>
+        <ul>
+          <li>NEC-referenced questions</li>
+          <li>Timed exam simulator</li>
+          <li>Clear calculation explanations</li>
+          <li>Built by a 24-year electrician</li>
+        </ul>
+      </section>
+
+      <section style={{ marginTop: "60px" }}>
+        <h3>Texas First. Nationwide Expansion.</h3>
+        <p>
+          Mizo launches with Texas Journeyman exam prep and will expand
+          state-by-state across the United States.
+        </p>
+      </section>
+
+      <section style={{ marginTop: "60px" }}>
+        <h3>30-Day Confidence Guarantee</h3>
+        <p>If you don’t feel more prepared, email us for a refund.</p>
+      </section>
+    </main>
+  );
 }
