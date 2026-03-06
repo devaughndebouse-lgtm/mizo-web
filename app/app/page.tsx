@@ -1,57 +1,68 @@
-import Stripe from "stripe";
-import { NextRequest, NextResponse } from "next/server";
+"use client";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ ok: false, error: message }, { status });
-}
+export default function AppPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-function isProd() {
-  return process.env.NODE_ENV === "production";
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const secret = process.env.STRIPE_SECRET_KEY?.trim();
-    if (!secret) return jsonError("Missing STRIPE_SECRET_KEY", 500);
-
-    const sessionId = req.nextUrl.searchParams.get("session_id")?.trim();
-    if (!sessionId) return jsonError("Missing session_id");
-
-    const stripe = new Stripe(secret, {
-      apiVersion: "2022-11-15",
-    });
-
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["subscription"],
-    });
-
-    const subscription: any = (session as any).subscription;
-    const paid = session.payment_status === "paid";
-    const subOk =
-      !!subscription &&
-      (subscription.status === "active" || subscription.status === "trialing");
-
-    if (!paid && !subOk) {
-      return jsonError("Payment not completed", 402);
+  async function logout() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const out = await res.json().catch(() => ({}));
+        throw new Error(out?.error ?? "Logout failed");
+      }
+      router.replace("/");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : typeof err === "string" ? err : null;
+      setError(message ?? "Logout failed");
+    } finally {
+      setLoading(false);
     }
-
-    const res = NextResponse.json({ ok: true, access: true });
-
-    res.cookies.set({
-      name: "mizo_access",
-      value: "1",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd(),
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-
-    return res;
-  } catch (err: any) {
-    return jsonError(err?.message || "Failed to verify session", 500);
   }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6 text-black">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-3xl font-extrabold">Mizo Simulator</h1>
+        <p className="text-sm text-black/70">
+          You’re in. If you got here, your access cookie is set.
+        </p>
+      </header>
+
+      {error ? (
+        <div className="rounded border bg-white p-3 text-sm font-semibold text-red-700">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          className="rounded bg-yellow-400 px-3 py-2 text-sm font-bold text-black disabled:opacity-60"
+          onClick={() => router.push("/")}
+          disabled={loading}
+        >
+          Back to home
+        </button>
+
+        <button
+          className="rounded border border-black bg-white px-3 py-2 text-sm font-bold text-black disabled:opacity-60"
+          onClick={logout}
+          disabled={loading}
+        >
+          {loading ? "Logging out…" : "Log out"}
+        </button>
+      </div>
+    </main>
+  );
 }
+
