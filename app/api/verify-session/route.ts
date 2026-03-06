@@ -1,136 +1,189 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import Stripe from "stripe";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-  // Gate the simulator behind a cookie set after successful Stripe verification.
-  if (!pathname.startsWith("/app")) return NextResponse.next();
-
-  const access = request.cookies.get("mizo_access")?.value;
-
-  if (!access) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    url.searchParams.set("reason", "subscribe");
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
+function jsonError(message: string, status = 400) {
+  return NextResponse.json({ ok: false, error: message }, { status });
 }
 
-export const config = {
-  matcher: ["/app/:path*"],
-};
-"use client";
+function isProd() {
+  return process.env.NODE_ENV === "production";
+}
 
-import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+function isLikelyCheckoutSessionId(id: string) {
+  // Stripe Checkout Session IDs are typically like: cs_test_..., cs_live_...
+  return /^cs_(test|live)_[A-Za-z0-9]+$/.test(id);
+}
 
-export default function Home() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [verifying, setVerifying] = useState(false);
-  const [verifyError, setVerifyError] = useState<string | null>(null);
+function generateTempPassword() {
+  // 12 chars, url-safe-ish
+  return Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8);
+}
 
-  // After Stripe redirects back, verify the session and then send the user into /app.
-  useEffect(() => {
-    const success = searchParams.get("success");
-    const sessionId =
-      searchParams.get("session_id") || searchParams.get("sessionId");
+function getSupabaseAdmin() {
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
 
-    if (success !== "true" || !sessionId) return;
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
-    let cancelled = false;
-    (async () => {
-      try {
-        setVerifying(true);
-        setVerifyError(null);
+async function ensureSupabaseUser(email: string) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { mode: "disabled" as const };
+  }
 
-        const res = await fetch(
-          `/api/verify-session?session_id=${encodeURIComponent(sessionId)}`,
-          { cache: "no-store" }
-        );
-        const data = await res.json();
+  // 1) Try to find user by email
+  const { data: list, error: listErr } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+  if (listErr) {
+    return { mode: "error" as const, error: listErr.message };
+  }
 
-        if (cancelled) return;
+  const existing = list.users.find((u) => (u.email ?? "").toLowerCase() === email.toLowerCase());
+  if (existing) {
+    return { mode: "existing" as const, userId: existing.id };
+  }
 
-        if (!res.ok || !data?.ok || !data?.access) {
-          setVerifyError(
-            data?.error || "Payment verified, but access was not granted."
-          );
-          setVerifying(false);
-          return;
+  // 2) Create user with temp password (Supabase stores hashed passwords)
+  const tempPassword = generateTempPassword();
+  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+    email,
+    password: tempPassword,
+    email_confirm: true,
+  });
+
+  if (createErr || !created.user) {
+    return { mode: "error" as const, error: createErr?.message ?? "Failed to create user" };
+  }
+
+  return { mode: "created" as const, userId: created.user.id, tempPassword };
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const secret = process.env.STRIPE_SECRET_KEY?.trim();
+    if (!secret) return jsonError("Missing STRIPE_SECRET_KEY", 500);
+
+    const sessionIdRaw = req.nextUrl.searchParams.get("session_id")?.trim();
+    if (!sessionIdRaw) return jsonError("Missing session_id");
+
+    if (!isLikelyCheckoutSessionId(sessionIdRaw)) {
+      return jsonError("Invalid session_id", 400);
+    }
+
+    const stripe = new Stripe(secret);
+
+    const session = await stripe.checkout.sessions.retrieve(sessionIdRaw, {
+      expand: ["subscription", "customer"],
+    });
+
+    const paymentOk =
+      session.payment_status === "paid" ||
+      session.payment_status === "no_payment_required";
+
+    const subscription = session.subscription as Stripe.Subscription | null;
+    const subOk =
+      !!subscription &&
+      (subscription.status === "active" || subscription.status === "trialing");
+
+    const accessGranted = paymentOk || subOk;
+    if (!accessGranted) {
+      return jsonError("Payment not completed", 402);
+    }
+
+    // Pull email from checkout/session
+    const emailFromCheckout = session.customer_details?.email?.trim();
+    const customerExpanded = session.customer as Stripe.Customer | string | null;
+    const emailFromCustomer =
+      typeof customerExpanded === "object" && customerExpanded?.email
+        ? customerExpanded.email.trim()
+        : null;
+
+    const email = emailFromCheckout || emailFromCustomer || null;
+
+    // Always set access cookie for MVP gate.
+    // We'll later replace this with real auth/session checks.
+    const baseRes = NextResponse.json({ ok: true, access: true, email }, { status: 200 });
+    baseRes.cookies.set({
+      name: "mizo_access",
+      value: "1",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd(),
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    baseRes.headers.set("Cache-Control", "no-store");
+
+    // If we have an email + Supabase configured, create/link a real user.
+    if (email) {
+      const ensured = await ensureSupabaseUser(email);
+
+      const stripeCustomerId = typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+      const stripeSubscriptionId = typeof subscription === "object" && subscription ? subscription.id : null;
+      const subscriptionStatus = typeof subscription === "object" && subscription ? subscription.status : null;
+
+      // Upsert into Postgres table (best-effort; app still works if table is missing)
+      const supabase = getSupabaseAdmin();
+      if (supabase && ensured.mode !== "disabled") {
+        if (ensured.mode === "created" || ensured.mode === "existing") {
+          await supabase
+            .from("mizo_users")
+            .upsert(
+              {
+                email,
+                supabase_user_id: ensured.userId,
+                stripe_customer_id: stripeCustomerId,
+                stripe_subscription_id: stripeSubscriptionId,
+                subscription_status: subscriptionStatus,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "email" }
+            );
         }
-
-        // Cookie is now set; go to the simulator.
-        router.replace("/app");
-      } catch (e: any) {
-        if (cancelled) return;
-        setVerifyError(e?.message || "Failed to verify payment.");
-        setVerifying(false);
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [router, searchParams]);
+      // Return temp password only when we just created the user.
+      if (ensured.mode === "created") {
+        return NextResponse.json(
+          { ok: true, access: true, email, tempPassword: ensured.tempPassword },
+          { status: 200, headers: baseRes.headers }
+        );
+      }
 
-  return (
-    <main style={{ padding: "40px", maxWidth: "900px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "42px", fontWeight: "bold" }}>
-        Pass Your Journeyman Exam With Confidence.
-      </h1>
+      if (ensured.mode === "existing") {
+        return NextResponse.json(
+          { ok: true, access: true, email },
+          { status: 200, headers: baseRes.headers }
+        );
+      }
 
-      <p style={{ fontSize: "20px", marginTop: "20px" }}>
-        NEC-referenced practice. Real exam simulations. Clear step-by-step
-        explanations built for working electricians.
-      </p>
+      if (ensured.mode === "error") {
+        // Don't block access due to user provisioning errors—log-like response for debugging.
+        return NextResponse.json(
+          { ok: true, access: true, email, provisioningWarning: ensured.error },
+          { status: 200, headers: baseRes.headers }
+        );
+      }
+    }
 
-      {verifying && <p style={{ marginTop: "16px" }}>Verifying payment…</p>}
-
-      {verifyError && <p style={{ marginTop: "16px" }}>{verifyError}</p>}
-
-      <div style={{ marginTop: "40px" }}>
-        <a
-          href="/app"
-          style={{
-            background: "#111",
-            color: "#fff",
-            padding: "14px 24px",
-            textDecoration: "none",
-            borderRadius: "8px",
-            fontSize: "18px",
-            display: "inline-block",
-          }}
-        >
-          Start Training — $79/month
-        </a>
-      </div>
-
-      <section style={{ marginTop: "80px" }}>
-        <h2>Why Mizo Works</h2>
-        <ul>
-          <li>NEC-referenced questions</li>
-          <li>Timed exam simulator</li>
-          <li>Clear calculation explanations</li>
-          <li>Built by a 24-year electrician</li>
-        </ul>
-      </section>
-
-      <section style={{ marginTop: "60px" }}>
-        <h3>Texas First. Nationwide Expansion.</h3>
-        <p>
-          Mizo launches with Texas Journeyman exam prep and will expand
-          state-by-state across the United States.
-        </p>
-      </section>
-
-      <section style={{ marginTop: "60px" }}>
-        <h3>30-Day Confidence Guarantee</h3>
-        <p>If you don’t feel more prepared, email us for a refund.</p>
-      </section>
-    </main>
-  );
+    // No email (or Supabase not configured). Still grant access via cookie.
+    return baseRes;
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : typeof err === "string" ? err : null;
+    return jsonError(message ?? "Failed to verify session", 500);
+  }
 }
