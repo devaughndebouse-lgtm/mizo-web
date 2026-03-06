@@ -4,7 +4,6 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect the simulator area
   if (!pathname.startsWith("/app")) {
     return NextResponse.next();
   }
