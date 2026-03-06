@@ -26,3 +26,16 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+.mizo-btn {
+  background-color: #FFD700;
+  color: #000;
+  font-weight: 800;
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.mizo-btn:hover {
+  background-color: #f2c800;
+}

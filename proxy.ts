@@ -4,19 +4,21 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Gate the simulator behind the cookie set after successful Stripe verification.
-  if (!pathname.startsWith("/app")) return NextResponse.next();
+  // Only protect the simulator area
+  if (!pathname.startsWith("/app")) {
+    return NextResponse.next();
+  }
 
   const access = request.cookies.get("mizo_access")?.value;
 
-  if (!access) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    url.searchParams.set("reason", "subscribe");
-    return NextResponse.redirect(url);
+  if (access === "1") {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  const url = request.nextUrl.clone();
+  url.pathname = "/";
+  url.searchParams.set("reason", "subscribe");
+  return NextResponse.redirect(url);
 }
 
 export const config = {

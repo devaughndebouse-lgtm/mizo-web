@@ -113,19 +113,7 @@ export async function GET(req: NextRequest) {
 
     const email = emailFromCheckout || emailFromCustomer || null;
 
-    // Always set access cookie for MVP gate.
-    // We'll later replace this with real auth/session checks.
-    const baseRes = NextResponse.json({ ok: true, access: true, email }, { status: 200 });
-    baseRes.cookies.set({
-      name: "mizo_access",
-      value: "1",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd(),
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-    baseRes.headers.set("Cache-Control", "no-store");
+    const responseBody: Record<string, unknown> = { ok: true, access: true, email };
 
     // If we have an email + Supabase configured, create/link a real user.
     if (email) {
@@ -157,30 +145,31 @@ export async function GET(req: NextRequest) {
 
       // Return temp password only when we just created the user.
       if (ensured.mode === "created") {
-        return NextResponse.json(
-          { ok: true, access: true, email, tempPassword: ensured.tempPassword },
-          { status: 200, headers: baseRes.headers }
-        );
+        responseBody.tempPassword = ensured.tempPassword;
       }
 
       if (ensured.mode === "existing") {
-        return NextResponse.json(
-          { ok: true, access: true, email },
-          { status: 200, headers: baseRes.headers }
-        );
+        // nothing extra to add
       }
 
       if (ensured.mode === "error") {
         // Don't block access due to user provisioning errors—log-like response for debugging.
-        return NextResponse.json(
-          { ok: true, access: true, email, provisioningWarning: ensured.error },
-          { status: 200, headers: baseRes.headers }
-        );
+        responseBody.provisioningWarning = ensured.error;
       }
     }
 
-    // No email (or Supabase not configured). Still grant access via cookie.
-    return baseRes;
+    const res = NextResponse.json(responseBody, { status: 200 });
+    res.cookies.set({
+      name: "mizo_access",
+      value: "1",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd(),
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    res.headers.set("Cache-Control", "no-store");
+    return res;
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : typeof err === "string" ? err : null;

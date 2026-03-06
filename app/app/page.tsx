@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Simulator } from "./simulator";
 
 export default function AppPage() {
   const router = useRouter();
@@ -39,6 +40,8 @@ export default function AppPage() {
         </p>
       </header>
 
+      <Simulator />
+
       {error ? (
         <div className="rounded border bg-white p-3 text-sm font-semibold text-red-700">
           {error}
@@ -65,4 +68,3 @@ export default function AppPage() {
     </main>
   );
 }
-
