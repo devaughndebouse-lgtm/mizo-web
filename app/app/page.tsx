@@ -47,23 +47,15 @@ export default function AppPage() {
         </p>
       </section>
 
-      <Simulator />
+      <div id="simulator">
+        <Simulator />
+      </div>
 
       <button
         className={btn}
-        onClick={async () => {
-          const res = await fetch("/api/create-checkout-session", {
-            method: "POST",
-            credentials: "include",
-          });
-          const data = await res.json().catch(() => ({}));
-
-          if (!data?.url) {
-            alert(`Stripe error: ${data?.error ?? "No checkout URL returned"}`);
-            return;
-          }
-
-          window.location.href = data.url;
+        onClick={() => {
+          const simulator = document.getElementById("simulator");
+          simulator?.scrollIntoView({ behavior: "smooth", block: "start" });
         }}
       >
         Start Training
