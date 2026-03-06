@@ -6,7 +6,6 @@ import { Simulator } from "./simulator";
 
 export default function AppPage() {
   const [topic, setTopic] = useState("mixed");
-  const btn = "mizo-btn";
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-2">
@@ -50,26 +49,6 @@ export default function AppPage() {
       <div id="simulator">
         <Simulator />
       </div>
-
-      <button
-        className={btn}
-        onClick={async () => {
-          const res = await fetch("/api/create-checkout-session", {
-            method: "POST",
-            credentials: "include",
-          });
-          const data = await res.json().catch(() => ({}));
-
-          if (!data?.url) {
-            alert(`Stripe error: ${data?.error ?? "No checkout URL returned"}`);
-            return;
-          }
-
-          window.location.href = data.url;
-        }}
-      >
-        Start Training
-      </button>
 
       <Link href="/" className="mizo-btn w-fit">
         Back Home
