@@ -17,12 +17,6 @@ function isLikelyCheckoutSessionId(id: string) {
   return /^cs_(test|live)_[A-Za-z0-9]+$/.test(id);
 }
 
-function generateTempPassword() {
-  return (
-    Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8)
-  );
-}
-
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -51,19 +45,29 @@ async function ensureSupabaseUser(email: string) {
   );
   if (existing) return { mode: "existing" as const, userId: existing.id };
 
-  const tempPassword = generateTempPassword();
-  const { data: created, error: createErr } =
-    await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-    });
+  const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: true,
+  });
 
   if (createErr || !created.user) {
     return { mode: "error" as const, error: createErr?.message ?? "Failed to create user" };
   }
 
-  return { mode: "created" as const, userId: created.user.id, tempPassword };
+  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/app`;
+  const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+  });
+
+  if (inviteErr) {
+    return {
+      mode: "created" as const,
+      userId: created.user.id,
+      inviteWarning: inviteErr.message,
+    };
+  }
+
+  return { mode: "created" as const, userId: created.user.id, invited: true };
 }
 
 export async function GET(req: NextRequest) {
@@ -135,7 +139,13 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      if (ensured.mode === "created") responseBody.tempPassword = ensured.tempPassword;
+      if (ensured.mode === "created") {
+        responseBody.accountCreated = true;
+        responseBody.accessEmailSent = ensured.invited === true;
+        if ("inviteWarning" in ensured && ensured.inviteWarning) {
+          responseBody.provisioningWarning = ensured.inviteWarning;
+        }
+      }
       if (ensured.mode === "error") responseBody.provisioningWarning = ensured.error;
     }
 
@@ -157,4 +167,3 @@ export async function GET(req: NextRequest) {
     return jsonError(message ?? "Failed to verify session", 500);
   }
 }
-
