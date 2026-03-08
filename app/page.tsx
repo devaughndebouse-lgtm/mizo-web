@@ -40,10 +40,12 @@ function LandingInner() {
 
         if (cancelled) return;
         router.replace("/app");
-      } catch (e: any) {
+      } catch (err: unknown) {
         if (cancelled) return;
         setStatus("error");
-        setError(e?.message ?? "Verification failed");
+        const message =
+          err instanceof Error ? err.message : typeof err === "string" ? err : null;
+        setError(message ?? "Verification failed");
       }
     })();
 

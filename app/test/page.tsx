@@ -13,7 +13,7 @@ export default async function TestPage() {
   }
 
   // Require request header to match admin secret
-  const reqHeaders = headers();
+  const reqHeaders = await headers();
   const providedSecret = reqHeaders.get("x-admin-secret");
 
   if (providedSecret !== adminSecret) {

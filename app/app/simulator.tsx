@@ -658,24 +658,29 @@ export function Simulator() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [secondsLeft, setSecondsLeft] = useState(EXAM_SECONDS);
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
-  const [progress, setProgress] = useState({ examsTaken: 0, bestScore: 0, lastScore: 0 });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const [progress, setProgress] = useState(() => {
+    if (typeof window === "undefined") {
+      return { examsTaken: 0, bestScore: 0, lastScore: 0 };
+    }
 
     try {
       const raw = window.localStorage.getItem(PROGRESS_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      setProgress({
-        examsTaken: Number(parsed?.examsTaken ?? 0),
-        bestScore: Number(parsed?.bestScore ?? 0),
-        lastScore: Number(parsed?.lastScore ?? 0),
-      });
+      if (!raw) return { examsTaken: 0, bestScore: 0, lastScore: 0 };
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") {
+        return { examsTaken: 0, bestScore: 0, lastScore: 0 };
+      }
+
+      const p = parsed as { examsTaken?: unknown; bestScore?: unknown; lastScore?: unknown };
+      return {
+        examsTaken: Number(p.examsTaken ?? 0),
+        bestScore: Number(p.bestScore ?? 0),
+        lastScore: Number(p.lastScore ?? 0),
+      };
     } catch {
-      // ignore bad stored data
+      return { examsTaken: 0, bestScore: 0, lastScore: 0 };
     }
-  }, []);
+  });
 
   const baseQuestions = useMemo(() => {
     return topic === "mixed" ? QUESTIONS : QUESTIONS.filter((q) => q.topic === topic);
@@ -711,27 +716,28 @@ export function Simulator() {
     return () => window.clearInterval(timer);
   }, [started, submitted, mode]);
 
-  useEffect(() => {
+  function reset(nextMode: typeof mode = mode) {
     setStarted(false);
     setSubmitted(false);
     setIndex(0);
     setAnswers({});
     setSessionQuestions([]);
-    setSecondsLeft(mode === "journeyman" ? JOURNEYMAN_SECONDS : EXAM_SECONDS);
-  }, [topic, mode]);
+    setSecondsLeft(nextMode === "journeyman" ? JOURNEYMAN_SECONDS : EXAM_SECONDS);
+  }
 
   function pick(choiceId: string) {
     if (!current || submitted) return;
     setAnswers((prev) => ({ ...prev, [current.id]: choiceId }));
   }
 
-  function reset() {
-    setStarted(false);
-    setSubmitted(false);
-    setIndex(0);
-    setAnswers({});
-    setSessionQuestions([]);
-    setSecondsLeft(mode === "journeyman" ? JOURNEYMAN_SECONDS : EXAM_SECONDS);
+  function setTopicAndReset(nextTopic: TopicId) {
+    setTopic(nextTopic);
+    reset(mode);
+  }
+
+  function setModeAndReset(nextMode: typeof mode) {
+    setMode(nextMode);
+    reset(nextMode);
   }
 
   function beginSession() {
@@ -772,7 +778,7 @@ export function Simulator() {
             <select
               className="mt-2 rounded border border-black px-3 py-2 text-sm text-black"
               value={topic}
-              onChange={(e) => setTopic(e.target.value as TopicId)}
+              onChange={(e) => setTopicAndReset(e.target.value as TopicId)}
             >
               {TOPICS.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -787,7 +793,7 @@ export function Simulator() {
             <select
               className="mt-2 rounded border border-black px-3 py-2 text-sm text-black"
               value={mode}
-              onChange={(e) => setMode(e.target.value as "practice" | "exam" | "journeyman")}
+              onChange={(e) => setModeAndReset(e.target.value as typeof mode)}
             >
               <option value="practice">Practice</option>
               <option value="exam">Timed Exam</option>
@@ -899,7 +905,7 @@ export function Simulator() {
           })}
         </div>
 
-        <button className="mizo-btn mt-5" onClick={reset}>
+        <button className="mizo-btn mt-5" onClick={() => reset()}>
           Start over
         </button>
       </section>
@@ -910,7 +916,7 @@ export function Simulator() {
     return (
       <section className="rounded-xl border bg-white p-5 text-black shadow-sm">
         <h2 className="text-lg font-extrabold">Simulator error</h2>
-        <button className="mizo-btn mt-4" onClick={reset}>
+        <button className="mizo-btn mt-4" onClick={() => reset()}>
           Reset
         </button>
       </section>
@@ -940,7 +946,7 @@ export function Simulator() {
           ) : null}
           <button
             className="rounded border border-black bg-white px-3 py-2 text-xs font-bold text-black"
-            onClick={reset}
+            onClick={() => reset()}
           >
             Reset
           </button>

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -45,8 +46,10 @@ export default function LoginPage() {
       setMessage("Login successful. Opening your training area...");
       router.replace("/app");
       router.refresh();
-    } catch (err: any) {
-      setError(err?.message ?? "Could not sign in.");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : typeof err === "string" ? err : null;
+      setError(message ?? "Could not sign in.");
     } finally {
       setLoading(false);
     }
@@ -75,9 +78,13 @@ export default function LoginPage() {
 
       if (otpError) throw otpError;
 
-      setMessage("Magic link sent. Check your email inbox and spam folder, then use the link to open your training area.");
-    } catch (err: any) {
-      setError(err?.message ?? "Could not send magic link.");
+      setMessage(
+        "Magic link sent. Check your email inbox and spam folder, then use the link to open your training area."
+      );
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : typeof err === "string" ? err : null;
+      setError(message ?? "Could not send magic link.");
     } finally {
       setLoading(false);
     }
