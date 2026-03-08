@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 function LandingInner() {
@@ -47,6 +48,13 @@ function LandingInner() {
             <button className="mizo-btn" onClick={startCheckout}>
               Start Training — $79/month
             </button>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              Login
+            </Link>
           </div>
 
           <div className="mt-4 space-y-1 text-sm text-white/70">
@@ -111,10 +119,17 @@ function LandingInner() {
           If after your first month you don’t feel significantly more prepared for the Journeyman exam, we’ll give you an additional month free.
         </p>
 
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button className="mizo-btn" onClick={startCheckout}>
             Start Training
           </button>
+
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+          >
+            Login
+          </Link>
         </div>
       </section>
     </main>
