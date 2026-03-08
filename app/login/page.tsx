@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const authBaseUrl =
+    typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? window.location.origin
+      : "https://www.mizomastery.com";
 
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,7 +22,7 @@ export default function LoginPage() {
     return createClient(url, anonKey);
   }, []);
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -27,6 +32,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
       if (!supabase) throw new Error("Supabase not configured.");
@@ -49,14 +55,16 @@ export default function LoginPage() {
   async function sendMagicLink() {
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
       if (!supabase) throw new Error("Supabase not configured.");
+      if (!email) throw new Error("Enter your email first.");
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: `${authBaseUrl}/app`,
         },
       });
 
@@ -73,17 +81,19 @@ export default function LoginPage() {
   async function sendPasswordReset() {
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
       if (!supabase) throw new Error("Supabase not configured.");
+      if (!email) throw new Error("Enter your email first.");
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${authBaseUrl}/login?email=${encodeURIComponent(email)}`,
       });
 
       if (error) throw error;
 
-      setMessage("Password reset email sent.");
+      setMessage("Password setup email sent. Check your inbox and spam folder.");
     } catch (err: any) {
       setError(err.message ?? "Failed to send reset email");
     } finally {
@@ -95,6 +105,10 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-black text-white px-6">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8">
         <h1 className="text-3xl font-bold">Mizo Mastery Login</h1>
+        <p className="mt-3 text-sm leading-6 text-white/70">
+          Use the same email you used at checkout. If you do not have a password yet,
+          send a magic link or reset your password to create one.
+        </p>
 
         <form className="mt-6 space-y-4" onSubmit={signIn}>
           <input
@@ -126,17 +140,21 @@ export default function LoginPage() {
         </form>
 
         <button
+          type="button"
           onClick={sendMagicLink}
-          className="mt-4 w-full rounded border border-white/20 py-3"
+          disabled={loading}
+          className="mt-4 w-full rounded border border-white/20 py-3 disabled:opacity-60"
         >
           Send Magic Link
         </button>
 
         <button
+          type="button"
           onClick={sendPasswordReset}
-          className="mt-3 w-full rounded border border-white/20 py-3"
+          disabled={loading}
+          className="mt-3 w-full rounded border border-white/20 py-3 disabled:opacity-60"
         >
-          Reset Password
+          Create / Reset Password
         </button>
 
         <div className="mt-6 text-sm text-white/70">
@@ -144,5 +162,13 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }
