@@ -11,7 +11,6 @@ export async function POST(req: Request) {
       process.env.STRIPE_PRICE_ID ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
     )?.trim();
 
-    // Prefer explicit app URL, else Vercel URL, else request origin
     const appUrl =
       (process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL)?.trim() ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
@@ -38,7 +37,7 @@ export async function POST(req: Request) {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${normalizedAppUrl}/?success=true&session_id={CHECKOUT_SESSION_ID}&reason=subscribe`,
+      success_url: `${normalizedAppUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${normalizedAppUrl}/?canceled=true`,
     });
 
