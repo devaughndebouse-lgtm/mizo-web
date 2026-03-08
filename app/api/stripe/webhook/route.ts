@@ -133,6 +133,28 @@ async function updateAccessByCustomerId(args: {
     .eq("stripe_customer_id", args.stripeCustomerId);
 }
 
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const subscriptionValue = (
+    invoice as Stripe.Invoice & {
+      subscription?: string | { id?: string | null } | null;
+    }
+  ).subscription;
+
+  if (typeof subscriptionValue === "string") {
+    return subscriptionValue;
+  }
+
+  if (
+    subscriptionValue &&
+    typeof subscriptionValue === "object" &&
+    typeof subscriptionValue.id === "string"
+  ) {
+    return subscriptionValue.id;
+  }
+
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const stripe = getStripe();
@@ -251,10 +273,7 @@ export async function POST(req: NextRequest) {
           ? invoice.customer
           : invoice.customer?.id ?? null;
 
-      const stripeSubscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id ?? null;
+      const stripeSubscriptionId = getInvoiceSubscriptionId(invoice);
 
       if (stripeCustomerId) {
         await updateAccessByCustomerId({
@@ -273,10 +292,7 @@ export async function POST(req: NextRequest) {
           ? invoice.customer
           : invoice.customer?.id ?? null;
 
-      const stripeSubscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id ?? null;
+      const stripeSubscriptionId = getInvoiceSubscriptionId(invoice);
 
       if (stripeCustomerId) {
         await updateAccessByCustomerId({

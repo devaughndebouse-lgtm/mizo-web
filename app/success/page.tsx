@@ -7,8 +7,6 @@ type VerifyResponse = {
   ok?: boolean;
   access?: boolean;
   email?: string | null;
-  tempPassword?: string;
-  provisioningWarning?: string;
   error?: string;
   message?: string;
 };
@@ -52,24 +50,16 @@ function SuccessInner() {
         if (cancelled) return;
 
         setStatus("Access unlocked");
-        setDetail("Redirecting you to your training area…");
+        setDetail("Redirecting you to login…");
 
         const email = typeof data.email === "string" ? data.email : null;
-        const tempPassword =
-          typeof data.tempPassword === "string" && data.tempPassword.trim()
-            ? data.tempPassword.trim()
-            : null;
 
         window.setTimeout(() => {
-          if (tempPassword && email) {
-            const qp = new URLSearchParams();
-            qp.set("email", email);
-            qp.set("temp", tempPassword);
-            qp.set("next", "/app");
-            router.replace(`/login?${qp.toString()}`);
+          if (email) {
+            router.replace(`/login?email=${encodeURIComponent(email)}`);
             return;
           }
-          router.replace("/app");
+          router.replace("/login");
         }, 900);
       } catch (err: unknown) {
         if (cancelled) return;
@@ -121,7 +111,6 @@ function SuccessInner() {
 }
 
 export default function SuccessPage() {
-  // IMPORTANT: useSearchParams() requires a Suspense boundary in App Router.
   return (
     <Suspense fallback={null}>
       <SuccessInner />
