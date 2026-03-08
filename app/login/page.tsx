@@ -7,6 +7,10 @@ import { createClient } from "@supabase/supabase-js";
 
 export default function LoginPage() {
   const router = useRouter();
+  const authBaseUrl =
+    typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? window.location.origin
+      : "https://www.mizomastery.com";
 
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -72,7 +76,7 @@ export default function LoginPage() {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: `${authBaseUrl}/app`,
         },
       });
 
