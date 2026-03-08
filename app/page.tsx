@@ -1,58 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter } from "next/navigation";
 
 function LandingInner() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const success = searchParams.get("success") === "true";
-  const sessionId = searchParams.get("session_id");
-  const canceled = searchParams.get("canceled") === "true";
-  const reason = searchParams.get("reason");
-
-  const [status, setStatus] = useState<"idle" | "verifying" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!success || !sessionId) return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        setStatus("verifying");
-        setError(null);
-
-        const res = await fetch(
-          `/api/verify-session?session_id=${encodeURIComponent(sessionId)}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
-
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data?.access) {
-          throw new Error(data?.error ?? "Failed to verify checkout");
-        }
-
-        if (cancelled) return;
-        router.replace("/app");
-      } catch (err: unknown) {
-        if (cancelled) return;
-        setStatus("error");
-        const message =
-          err instanceof Error ? err.message : typeof err === "string" ? err : null;
-        setError(message ?? "Verification failed");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [success, sessionId, router]);
 
   async function startCheckout() {
     const res = await fetch("/api/create-checkout-session", {
@@ -103,30 +55,9 @@ function LandingInner() {
             <div>✔ Get an additional month free if you’re not satisfied</div>
           </div>
 
-          {reason === "subscribe" && (
-            <div className="mt-6 rounded-lg border border-yellow-300/30 bg-white p-4 text-lg font-extrabold text-black">
-              🔒 Simulator access is Pro-only. Start training to unlock.
-            </div>
-          )}
-
-          {status === "verifying" && (
-            <div className="mt-6 rounded-lg border bg-white p-4 text-sm font-semibold text-black">
-              ✅ Payment received — unlocking access…
-            </div>
-          )}
-
-          {status === "error" && (
-            <div className="mt-6 rounded-lg border bg-white p-4 text-sm font-semibold text-red-700">
-              Could not unlock access: {error}
-            </div>
-          )}
-
-          {(success || canceled) && (
-            <div className="mt-6 rounded-lg border bg-white p-4 text-sm text-black">
-              {success && <div>✅ Checkout completed. Finishing unlock…</div>}
-              {canceled && <div>Checkout canceled.</div>}
-            </div>
-          )}
+          <div className="mt-6 rounded-lg border border-yellow-300/30 bg-white p-4 text-lg font-extrabold text-black">
+            🔒 Simulator access is Pro-only. Start training to unlock.
+          </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl">
@@ -145,60 +76,27 @@ function LandingInner() {
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-white p-6 text-black shadow-sm">
-          <div className="text-sm font-bold uppercase tracking-wide text-black/60">
-            1
-          </div>
+          <div className="text-sm font-bold uppercase tracking-wide text-black/60">1</div>
           <h2 className="mt-2 text-xl font-bold">Practice real questions</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">
-            Train with exam-style questions that build code navigation,
-            confidence, and speed.
+            Train with exam-style questions that build code navigation, confidence, and speed.
           </p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white p-6 text-black shadow-sm">
-          <div className="text-sm font-bold uppercase tracking-wide text-black/60">
-            2
-          </div>
+          <div className="text-sm font-bold uppercase tracking-wide text-black/60">2</div>
           <h2 className="mt-2 text-xl font-bold">Take timed simulations</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">
-            Stop guessing how ready you are. Practice under real pressure before
-            exam day.
+            Stop guessing how ready you are. Practice under real pressure before exam day.
           </p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white p-6 text-black shadow-sm">
-          <div className="text-sm font-bold uppercase tracking-wide text-black/60">
-            3
-          </div>
+          <div className="text-sm font-bold uppercase tracking-wide text-black/60">3</div>
           <h2 className="mt-2 text-xl font-bold">Walk in prepared</h2>
           <p className="mt-3 text-sm leading-7 text-black/75">
-            Build the pace and confidence needed to pass the Journeyman exam the
-            first time.
+            Build the pace and confidence needed to pass the Journeyman exam the first time.
           </p>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-white p-8 text-black shadow-sm">
-        <h2 className="text-2xl font-extrabold">
-          Why this works better than studying alone
-        </h2>
-        <div className="mt-4 grid gap-6 md:grid-cols-2">
-          <div>
-            <div className="text-lg font-bold">Most people fail because they:</div>
-            <ul className="mt-3 space-y-2 text-sm leading-7 text-black/80">
-              <li>• Memorize answers instead of learning the code book</li>
-              <li>• Never practice under time pressure</li>
-              <li>• Don’t simulate the real testing environment</li>
-            </ul>
-          </div>
-          <div>
-            <div className="text-lg font-bold">Mizo fixes that by giving you:</div>
-            <ul className="mt-3 space-y-2 text-sm leading-7 text-black/80">
-              <li>• Structured practice</li>
-              <li>• Exam-speed repetition</li>
-              <li>• Step-by-step explanations that actually teach</li>
-            </ul>
-          </div>
         </div>
       </section>
 
@@ -210,9 +108,7 @@ function LandingInner() {
           Get an Additional Month Free if You’re Not Satisfied
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-white/80">
-          If after your first month you don’t feel significantly more prepared
-          for the Journeyman exam, we’ll give you an additional month free.
-          Train with confidence and build the speed you need to pass.
+          If after your first month you don’t feel significantly more prepared for the Journeyman exam, we’ll give you an additional month free.
         </p>
 
         <div className="mt-6">
@@ -232,9 +128,3 @@ export default function Page() {
     </Suspense>
   );
 }
-<div className="text-sm text-white/60 mt-10 text-center">
-  <a href="/terms" className="mx-2">Terms</a>
-  <a href="/privacy" className="mx-2">Privacy</a>
-  <a href="/refund" className="mx-2">Refund</a>
-  <a href="/contact" className="mx-2">Contact</a>
-</div>
