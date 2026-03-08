@@ -232,3 +232,9 @@ export default function Page() {
     </Suspense>
   );
 }
+<div className="text-sm text-white/60 mt-10 text-center">
+  <a href="/terms" className="mx-2">Terms</a>
+  <a href="/privacy" className="mx-2">Privacy</a>
+  <a href="/refund" className="mx-2">Refund</a>
+  <a href="/contact" className="mx-2">Contact</a>
+</div>
