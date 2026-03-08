@@ -113,6 +113,26 @@ async function upsertMizoUser(args: {
   );
 }
 
+async function updateAccessByCustomerId(args: {
+  stripeCustomerId: string;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus: string | null;
+  accessActive: boolean;
+}) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  await supabase
+    .from("mizo_users")
+    .update({
+      stripe_subscription_id: args.stripeSubscriptionId ?? null,
+      subscription_status: args.subscriptionStatus,
+      access_active: args.accessActive,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_customer_id", args.stripeCustomerId);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const stripe = getStripe();
@@ -142,6 +162,8 @@ export async function POST(req: NextRequest) {
       const message = err instanceof Error ? err.message : "Invalid webhook signature";
       return NextResponse.json({ ok: false, error: message }, { status: 400 });
     }
+
+    console.log("Stripe webhook received:", event.type);
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -194,18 +216,14 @@ export async function POST(req: NextRequest) {
           ? subscription.customer
           : subscription.customer?.id ?? null;
 
-      const supabase = getSupabaseAdmin();
-      if (supabase && stripeCustomerId) {
-        await supabase
-          .from("mizo_users")
-          .update({
-            stripe_subscription_id: subscription.id,
-            subscription_status: subscription.status,
-            access_active:
-              subscription.status === "active" || subscription.status === "trialing",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("stripe_customer_id", stripeCustomerId);
+      if (stripeCustomerId) {
+        await updateAccessByCustomerId({
+          stripeCustomerId,
+          stripeSubscriptionId: subscription.id,
+          subscriptionStatus: subscription.status,
+          accessActive:
+            subscription.status === "active" || subscription.status === "trialing",
+        });
       }
     }
 
@@ -216,17 +234,57 @@ export async function POST(req: NextRequest) {
           ? subscription.customer
           : subscription.customer?.id ?? null;
 
-      const supabase = getSupabaseAdmin();
-      if (supabase && stripeCustomerId) {
-        await supabase
-          .from("mizo_users")
-          .update({
-            stripe_subscription_id: subscription.id,
-            subscription_status: subscription.status,
-            access_active: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("stripe_customer_id", stripeCustomerId);
+      if (stripeCustomerId) {
+        await updateAccessByCustomerId({
+          stripeCustomerId,
+          stripeSubscriptionId: subscription.id,
+          subscriptionStatus: subscription.status,
+          accessActive: false,
+        });
+      }
+    }
+
+    if (event.type === "invoice.payment_succeeded") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeCustomerId =
+        typeof invoice.customer === "string"
+          ? invoice.customer
+          : invoice.customer?.id ?? null;
+
+      const stripeSubscriptionId =
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription?.id ?? null;
+
+      if (stripeCustomerId) {
+        await updateAccessByCustomerId({
+          stripeCustomerId,
+          stripeSubscriptionId,
+          subscriptionStatus: "active",
+          accessActive: true,
+        });
+      }
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeCustomerId =
+        typeof invoice.customer === "string"
+          ? invoice.customer
+          : invoice.customer?.id ?? null;
+
+      const stripeSubscriptionId =
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription?.id ?? null;
+
+      if (stripeCustomerId) {
+        await updateAccessByCustomerId({
+          stripeCustomerId,
+          stripeSubscriptionId,
+          subscriptionStatus: "past_due",
+          accessActive: false,
+        });
       }
     }
 

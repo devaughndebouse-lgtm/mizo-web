@@ -8,8 +8,12 @@ function jsonError(message: string, status = 400) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
+function isProd() {
+  return process.env.NODE_ENV === "production";
+}
+
 function isLikelyCheckoutSessionId(id: string) {
-  return /^cs_(test|live)_[A-Za-z0-9]+$/.test(id);
+  return /^cs_(test|live)_[A-Za-z0-9_]+$/.test(id);
 }
 
 export async function GET(req: NextRequest) {
@@ -41,16 +45,35 @@ export async function GET(req: NextRequest) {
       return jsonError("Payment not completed", 402);
     }
 
-    return NextResponse.json({
-      ok: true,
-      verified: true,
-      email:
-        session.customer_details?.email ??
-        (typeof session.customer_email === "string" ? session.customer_email : null),
-      message: "Checkout verified. Final account activation is handled by webhook.",
+    const email =
+      session.customer_details?.email ??
+      (typeof session.customer_email === "string" ? session.customer_email : null);
+
+    const res = NextResponse.json(
+      {
+        ok: true,
+        access: true,
+        verified: true,
+        email,
+      },
+      { status: 200 }
+    );
+
+    // Cookie used by `proxy.ts` to gate /app routes.
+    res.cookies.set({
+      name: "mizo_access",
+      value: "1",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd(),
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to verify session";
-    return jsonError(message, 500);
+    res.headers.set("Cache-Control", "no-store");
+    return res;
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : typeof err === "string" ? err : null;
+    return jsonError(message ?? "Failed to verify session", 500);
   }
 }
