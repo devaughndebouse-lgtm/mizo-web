@@ -277,6 +277,36 @@ function LandingInner() {
             </Link>
           </div>
         </section>
+
+        <footer className="rounded-[28px] border border-neutral-200 bg-white px-5 py-6 text-center shadow-sm sm:px-8">
+          <p className="text-sm font-semibold text-neutral-900">
+            © 2026 Mizo Mastery • A product of INM Unlimited LLC
+          </p>
+
+          <p className="mt-2 text-sm text-neutral-600">
+            Contact: inm.unlimited.llc@gmail.com
+          </p>
+
+          <p className="mx-auto mt-3 max-w-3xl text-xs leading-6 text-neutral-500 sm:text-sm">
+            Mizo Mastery is an educational training platform and is not affiliated
+            with NEC, NFPA, PSI, or any licensing authority.
+          </p>
+
+          <div className="mt-5 flex flex-col items-center justify-center gap-3 text-sm font-bold text-neutral-700 sm:flex-row sm:flex-wrap sm:gap-5">
+            <Link href="/terms" className="hover:text-neutral-950">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-neutral-950">
+              Privacy
+            </Link>
+            <Link href="/refund" className="hover:text-neutral-950">
+              Refund
+            </Link>
+            <Link href="/contact" className="hover:text-neutral-950">
+              Contact
+            </Link>
+          </div>
+        </footer>
       </div>
     </main>
   );
