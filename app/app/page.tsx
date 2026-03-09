@@ -130,7 +130,6 @@ export default function AppPage() {
 
       const session = data.session;
       if (!session) {
-        router.replace("/login");
         return;
       }
 
@@ -147,8 +146,12 @@ export default function AppPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
+      if (event === "SIGNED_OUT") {
         router.replace("/login");
+        return;
+      }
+
+      if (!session) {
         return;
       }
 
