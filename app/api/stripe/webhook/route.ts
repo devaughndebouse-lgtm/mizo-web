@@ -13,6 +13,10 @@ function getStripe() {
   return new Stripe(secret);
 }
 
+function getAppUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL?.trim() ?? process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -46,27 +50,18 @@ async function ensureSupabaseUserAndInvite(email: string) {
     (u) => (u.email ?? "").toLowerCase() === email.toLowerCase()
   );
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/app`;
+  const redirectTo = `${getAppUrl()}/login`;
 
   if (existing) {
-    const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
-    });
-
-    if (inviteErr) {
-      return {
-        mode: "existing" as const,
-        userId: existing.id,
-        inviteWarning: inviteErr.message,
-      };
-    }
-
-    return { mode: "existing" as const, userId: existing.id, invited: true };
+    return { mode: "existing" as const, userId: existing.id, invited: false };
   }
 
   const { data: created, error: createErr } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,
+    user_metadata: {
+      source: "stripe_checkout",
+    },
   });
 
   if (createErr || !created.user) {
@@ -221,12 +216,16 @@ export async function POST(req: NextRequest) {
           console.error("Supabase provisioning error:", ensured.error);
         }
 
-        if (
-          (ensured.mode === "created" || ensured.mode === "existing") &&
-          "inviteWarning" in ensured &&
-          ensured.inviteWarning
-        ) {
+        if (ensured.mode === "created" && "inviteWarning" in ensured && ensured.inviteWarning) {
           console.error("Supabase invite warning:", ensured.inviteWarning);
+        }
+
+        if (ensured.mode === "created") {
+          console.log(`Supabase invite sent to ${email}`);
+        }
+
+        if (ensured.mode === "existing") {
+          console.log(`Supabase user already exists for ${email}`);
         }
       }
     }

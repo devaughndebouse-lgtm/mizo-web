@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import { Simulator } from "./simulator";
 
 type TopicOption = {
@@ -79,12 +81,116 @@ const TOPIC_OPTIONS: TopicOption[] = [
 ];
 
 export default function AppPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !anonKey) return null;
+
+    return createClient(url, anonKey);
+  }, []);
+
+  const [authChecked, setAuthChecked] = useState(false);
   const [topic, setTopic] = useState("mixed");
 
   const currentTopic = useMemo(
     () => TOPIC_OPTIONS.find((item) => item.value === topic) ?? TOPIC_OPTIONS[0],
     [topic]
   );
+
+  useEffect(() => {
+    if (!supabase) {
+      router.replace("/login");
+      return;
+    }
+
+    let isMounted = true;
+
+    const verifyAccess = async (email: string) => {
+      const { data: accessRow, error: accessError } = await supabase
+        .from("mizo_users")
+        .select("access_active")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (accessError || !accessRow?.access_active) {
+        await supabase.auth.signOut({ scope: "local" });
+        router.replace("/");
+        return;
+      }
+
+      setAuthChecked(true);
+    };
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!isMounted) return;
+
+      const session = data.session;
+      if (!session) {
+        router.replace("/login");
+        return;
+      }
+
+      const userEmail = session.user.email;
+      if (!userEmail) {
+        await supabase.auth.signOut({ scope: "local" });
+        router.replace("/login");
+        return;
+      }
+
+      await verifyAccess(userEmail);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        router.replace("/login");
+        return;
+      }
+
+      void (async () => {
+        const userEmail = session.user.email;
+        if (!userEmail) {
+          await supabase.auth.signOut({ scope: "local" });
+          router.replace("/login");
+          return;
+        }
+
+        await verifyAccess(userEmail);
+      })();
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
+
+  async function handleLogout() {
+    if (!supabase) {
+      router.replace("/login");
+      return;
+    }
+
+    await supabase.auth.signOut({ scope: "local" });
+    router.replace("/login");
+  }
+
+  if (!authChecked) {
+    return (
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(250,204,21,0.12),_transparent_28%),linear-gradient(180deg,_#0b0b0c_0%,_#111214_55%,_#0a0a0b_100%)] px-6 py-8 text-white">
+        <div className="mx-auto flex min-h-[60vh] max-w-6xl items-center justify-center">
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white/80 backdrop-blur">
+            Checking access...
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(250,204,21,0.12),_transparent_28%),linear-gradient(180deg,_#0b0b0c_0%,_#111214_55%,_#0a0a0b_100%)] px-6 py-8 text-white">
@@ -102,12 +208,13 @@ export default function AppPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link
-                href="/login"
+              <button
+                type="button"
+                onClick={handleLogout}
                 className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
               >
-                Account
-              </Link>
+                Log Out
+              </button>
               <Link href="/" className="mizo-btn">
                 Back Home
               </Link>
