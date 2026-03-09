@@ -1,11 +1,43 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const DEMO_QUESTIONS = [
+  {
+    question: "What is the minimum size copper equipment grounding conductor for a 100‑amp overcurrent device?",
+    choices: ["#10 AWG", "#8 AWG", "#6 AWG", "#4 AWG"],
+    answer: 1,
+    explanation:
+      "NEC Table 250.122 sizes the equipment grounding conductor based on the rating of the overcurrent device. For a 100‑amp device the minimum copper EGC is #8 AWG.",
+  },
+  {
+    question: "What NEC article primarily covers photovoltaic systems?",
+    choices: ["Article 240", "Article 690", "Article 250", "Article 430"],
+    answer: 1,
+    explanation:
+      "Photovoltaic systems are covered in NEC Article 690.",
+  },
+  {
+    question: "What is the minimum working clearance in front of 120‑240V equipment under normal conditions?",
+    choices: ["24 inches", "30 inches", "36 inches", "42 inches"],
+    answer: 2,
+    explanation:
+      "NEC 110.26 generally requires 36 inches of working clearance for 120‑240V equipment under typical conditions.",
+  }
+];
+
 function LandingInner() {
   const router = useRouter();
+
+  const demoQuestion = useMemo(() => {
+    const index = Math.floor(Math.random() * DEMO_QUESTIONS.length);
+    return DEMO_QUESTIONS[index];
+  }, []);
+
+  const [selected, setSelected] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   async function startCheckout() {
     const res = await fetch("/api/create-checkout-session", {
@@ -80,6 +112,65 @@ function LandingInner() {
             <li>✔ Texas first, nationwide next</li>
           </ul>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/5 p-8">
+        <h2 className="text-3xl font-extrabold text-white">
+          Try a Real Mizo Question
+        </h2>
+
+        <p className="mt-2 text-white/70">
+          This is a sample from the simulator. Each visit shows a different question.
+        </p>
+
+        <div className="mt-6 text-lg font-semibold text-white">
+          {demoQuestion.question}
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          {demoQuestion.choices.map((choice, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setSelected(i);
+                setSubmitted(false);
+              }}
+              className={`rounded-xl border px-4 py-3 text-left font-semibold transition ${
+                selected === i
+                  ? "border-yellow-400 bg-yellow-400/20"
+                  : "border-white/10 bg-black/30 hover:bg-black/40"
+              }`}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            className="mizo-btn"
+            disabled={selected === null}
+            onClick={() => setSubmitted(true)}
+          >
+            Check Answer
+          </button>
+
+          <button
+            className="rounded-xl border border-white/20 px-5 py-3 font-bold"
+            onClick={startCheckout}
+          >
+            Unlock Full Simulator
+          </button>
+        </div>
+
+        {submitted && (
+          <div className="mt-6 rounded-xl border border-white/10 bg-black/30 p-4">
+            <div className="font-bold text-yellow-300">
+              Correct Answer: {demoQuestion.choices[demoQuestion.answer]}
+            </div>
+            <p className="mt-2 text-white/80">{demoQuestion.explanation}</p>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
