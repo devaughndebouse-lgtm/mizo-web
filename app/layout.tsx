@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Mizo Mastery | Journeyman Electrician Exam Prep",
   description:
     "Mizo Mastery is a simulator-style exam prep platform built by electricians to help apprentices pass the Journeyman electrical exam using NEC-based questions and timed practice tests.",
+  metadataBase: new URL("https://www.mizomastery.com"),
   keywords: [
     "journeyman electrician exam",
     "electrical exam prep",
@@ -15,6 +16,17 @@ export const metadata: Metadata = {
     "electrician simulator",
     "Mizo Mastery"
   ],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
     title: "Mizo Mastery | Journeyman Electrician Exam Prep",
     description:
