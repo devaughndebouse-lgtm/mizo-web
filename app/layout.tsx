@@ -2,8 +2,27 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mizo Mastery",
-  description: "Journeyman exam prep for electricians",
+  title: "Mizo Mastery | Journeyman Electrician Exam Prep",
+  description:
+    "Mizo Mastery is a simulator-style exam prep platform built by electricians to help apprentices pass the Journeyman electrical exam using NEC-based questions and timed practice tests.",
+  keywords: [
+    "journeyman electrician exam",
+    "electrical exam prep",
+    "NEC exam practice",
+    "electrician test prep",
+    "journeyman electrical license",
+    "NEC practice questions",
+    "electrician simulator",
+    "Mizo Mastery"
+  ],
+  openGraph: {
+    title: "Mizo Mastery | Journeyman Electrician Exam Prep",
+    description:
+      "Practice NEC-style questions and pass your Journeyman electrician exam with the Mizo Mastery simulator.",
+    url: "https://www.mizomastery.com",
+    siteName: "Mizo Mastery",
+    type: "website",
+  },
 };
 
 function SiteFooter() {
