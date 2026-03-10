@@ -34,12 +34,21 @@ export const metadata: Metadata = {
     url: "https://www.mizomastery.com",
     siteName: "Mizo Mastery",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Mizo Mastery Journeyman Electrician Exam Prep",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Mizo Mastery | Journeyman Electrician Exam Prep",
     description:
       "Practice NEC-style questions and pass your Journeyman electrician exam with the Mizo Mastery simulator.",
+    images: ["/og-image.png"],
   },
   icons: {
     icon: "/favicon.ico",

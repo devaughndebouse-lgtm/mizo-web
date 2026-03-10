@@ -171,6 +171,24 @@ function LandingInner() {
           </div>
         </section>
 
+        <section className="rounded-[28px] border border-neutral-200 bg-white p-6 text-center shadow-sm">
+          <h2 className="text-2xl font-black text-neutral-950">
+            Free Electrician Practice Questions
+          </h2>
+
+          <p className="mt-3 text-neutral-700">
+            Try a few real NEC-style practice questions before unlocking the full
+            Mizo Mastery simulator.
+          </p>
+
+          <Link
+            href="/electrician-practice-questions"
+            className="inline-block mt-5 rounded-xl bg-yellow-400 px-6 py-3 font-bold text-neutral-950 hover:bg-yellow-300"
+          >
+            Try Free Practice Questions
+          </Link>
+        </section>
+
         <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="text-3xl font-black text-neutral-950">
             Try a Real Mizo Question
