@@ -35,6 +35,15 @@ export const metadata: Metadata = {
     siteName: "Mizo Mastery",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mizo Mastery | Journeyman Electrician Exam Prep",
+    description:
+      "Practice NEC-style questions and pass your Journeyman electrician exam with the Mizo Mastery simulator.",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 function SiteFooter() {
