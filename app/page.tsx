@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 const DEMO_QUESTIONS = [
@@ -134,8 +135,18 @@ function LandingInner() {
             </div>
 
             <div className="lg:justify-self-end">
-              <div className="rounded-[28px] border border-neutral-200 bg-neutral-950 p-4 shadow-2xl sm:p-5">
-                <div className="rounded-[22px] bg-white p-4 sm:p-5">
+              <div className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+                <div className="relative aspect-[4/3] w-full">
+                  <Image
+                    src="/hero-electrician.jpg"
+                    alt="Electrician working on electrical equipment"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+
+                <div className="p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-bold uppercase tracking-[0.18em] text-yellow-700">
@@ -187,6 +198,54 @@ function LandingInner() {
           >
             Try Free Practice Questions
           </Link>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+            <div className="relative aspect-[16/10] w-full">
+              <Image
+                src="/electrician-blueprint.jpg"
+                alt="Construction plans and tape measure on a work table"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="p-6">
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+                Train with purpose
+              </div>
+              <h2 className="mt-2 text-2xl font-black text-neutral-950">
+                Practice that feels connected to real field work
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+                Mizo is built for electricians who think in layouts, loads,
+                equipment, and code decisions — not generic test prep.
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-sm">
+            <div className="relative aspect-[16/10] w-full">
+              <Image
+                src="/electrician-panel.jpg"
+                alt="Electrician working inside an electrical panel"
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="p-6">
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+                Built from the field
+              </div>
+              <h2 className="mt-2 text-2xl font-black text-neutral-950">
+                Study with real electrician energy
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+                Timed practice, NEC-style questions, and practical explanations
+                help you build confidence before exam day.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-8">
