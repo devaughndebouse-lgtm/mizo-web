@@ -278,6 +278,10 @@ function LandingInner() {
     const res = await fetch("/api/create-checkout-session", {
       method: "POST",
       credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ source }),
     });
 
     const data = await res.json().catch(() => ({}));
