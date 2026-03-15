@@ -78,19 +78,19 @@ const TESTIMONIALS = [
     name: "Derrick H.",
     role: "Apprentice Electrician",
     quote:
-      "Mizo Mastery helped me practice real exam-style questions instead of just reading the code book over and over.",
+      "Mizo Mastery helped me get faster with code navigation and made the practice questions feel much closer to the real exam.",
   },
   {
     name: "Anthony W.",
     role: "Journeyman Candidate",
     quote:
-      "The step-by-step breakdowns made the calculations finally click for me. This feels built for electricians.",
+      "The calculation breakdowns made a huge difference for me. I felt much more confident going into exam prep each night.",
   },
   {
     name: "Carlos R.",
     role: "Electrical Trainee",
     quote:
-      "I like that I can jump in, answer questions fast, and actually feel like I’m getting better every day.",
+      "I like that I can jump in, train under pressure, and actually feel myself getting sharper instead of just rereading the code book.",
   },
 ];
 
@@ -119,6 +119,15 @@ const FAQS = [
     answer:
       "Yes. Mizo Mastery includes timed practice to help you build speed, confidence, and exam-day readiness.",
   },
+];
+
+const PRICING_FEATURES = [
+  "Unlimited NEC-style practice questions",
+  "Timed exam simulations",
+  "Step-by-step calculation walkthroughs",
+  "Built for electricians preparing for the Journeyman exam",
+  "30-Day Confidence Guarantee",
+  "Cancel anytime",
 ];
 function LandingInner() {
   const demoQuestion = useMemo(() => {
@@ -485,6 +494,49 @@ function LandingInner() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="text-center">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+              Pricing
+            </div>
+            <h2 className="mt-2 text-3xl font-black text-neutral-950">
+              Start Training with Mizo Mastery
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+              Get full access to NEC-style practice, timed simulations, and step-by-step explanations built for working electricians.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-8 max-w-xl rounded-[28px] border border-yellow-200 bg-yellow-50 p-6 text-center">
+            <div className="text-sm font-bold uppercase tracking-[0.2em] text-yellow-700">
+              Pro Access
+            </div>
+            <div className="mt-3 text-5xl font-black text-neutral-950">
+              $79
+              <span className="text-lg font-semibold text-neutral-700">/month</span>
+            </div>
+
+            <p className="mt-3 text-sm font-semibold text-neutral-700">
+              Built for electricians who want serious exam prep.
+            </p>
+
+            <div className="mt-6 space-y-3 text-left">
+              {PRICING_FEATURES.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-yellow-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900"
+                >
+                  ✓ {item}
+                </div>
+              ))}
+            </div>
+
+            <button className="mizo-btn mt-6" onClick={startCheckout}>
+              Start Training Now
+            </button>
           </div>
         </section>
 
