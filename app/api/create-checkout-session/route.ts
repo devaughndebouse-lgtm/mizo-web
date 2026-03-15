@@ -4,12 +4,60 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type CheckoutSource =
+  | "hero_primary"
+  | "pricing_journeyman"
+  | "journeyman_track"
+  | "pricing_master"
+  | "master_track"
+  | "demo_question_secondary"
+  | "guarantee_primary"
+  | "pricing_primary"
+  | string;
+
+function getPriceIdForSource(source?: CheckoutSource) {
+  const journeymanPriceId = (
+    process.env.STRIPE_JOURNEYMAN_PRICE_ID ??
+    process.env.NEXT_PUBLIC_STRIPE_JOURNEYMAN_PRICE_ID
+  )?.trim();
+
+  const masterPriceId = (
+    process.env.STRIPE_MASTER_PRICE_ID ??
+    process.env.NEXT_PUBLIC_STRIPE_MASTER_PRICE_ID
+  )?.trim();
+
+  const defaultPriceId = (
+    process.env.STRIPE_PRICE_ID ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
+  )?.trim();
+
+  if (
+    source === "hero_primary" ||
+    source === "pricing_journeyman" ||
+    source === "journeyman_track"
+  ) {
+    return journeymanPriceId ?? defaultPriceId;
+  }
+
+  if (source === "pricing_master" || source === "master_track") {
+    return masterPriceId ?? defaultPriceId;
+  }
+
+  return defaultPriceId ?? journeymanPriceId ?? masterPriceId;
+}
+
 export async function POST(req: Request) {
   try {
     const secret = process.env.STRIPE_SECRET_KEY?.trim();
-    const priceId = (
-      process.env.STRIPE_PRICE_ID ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
-    )?.trim();
+
+    let source: CheckoutSource | undefined;
+    try {
+      const body = (await req.json()) as { source?: CheckoutSource };
+      source = body?.source;
+    } catch {
+      source = undefined;
+    }
+
+    const priceId = getPriceIdForSource(source);
 
     const appUrl =
       (process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL)?.trim() ||
@@ -22,12 +70,18 @@ export async function POST(req: Request) {
         : `https://${appUrl.replace(/\/$/, "")}`;
 
     if (!secret) {
-      return NextResponse.json({ error: "Missing STRIPE_SECRET_KEY" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Missing STRIPE_SECRET_KEY" },
+        { status: 500 }
+      );
     }
 
     if (!priceId) {
       return NextResponse.json(
-        { error: "Missing STRIPE_PRICE_ID (or NEXT_PUBLIC_STRIPE_PRICE_ID)" },
+        {
+          error:
+            "Missing Stripe price ID. Set STRIPE_JOURNEYMAN_PRICE_ID, STRIPE_MASTER_PRICE_ID, or STRIPE_PRICE_ID.",
+        },
         { status: 500 }
       );
     }

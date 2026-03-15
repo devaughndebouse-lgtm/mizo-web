@@ -17,6 +17,7 @@ type Choice = {
   explanation: string;
 };
 
+
 type Question = {
   id: string;
   topic: TopicId;
@@ -25,6 +26,8 @@ type Question = {
   correctChoiceId: string;
   reference?: string;
 };
+
+type TrackId = "journeyman" | "master";
 
 const TOPICS: Array<{ id: TopicId; label: string }> = [
   { id: "mixed", label: "Mixed" },
@@ -37,8 +40,8 @@ const TOPICS: Array<{ id: TopicId; label: string }> = [
 ];
 
 const EXAM_SECONDS = 15 * 60;
-const JOURNEYMAN_SECONDS = 4 * 60 * 60;
-const JOURNEYMAN_QUESTION_COUNT = 80;
+const MOCK_SECONDS = 4 * 60 * 60;
+const MOCK_QUESTION_COUNT = 80;
 const PROGRESS_KEY = "mizo_progress_v1";
 
 const serviceAmpPairs = [
@@ -607,7 +610,7 @@ const CALCULATION_QUESTIONS: Question[] = [
   },
 ];
 
-const QUESTIONS: Question[] = [
+const JOURNEYMAN_QUESTIONS: Question[] = [
   ...DEFINITION_QUESTIONS,
   ...GROUNDING_QUESTIONS,
   ...MOTOR_QUESTIONS,
@@ -615,6 +618,267 @@ const QUESTIONS: Question[] = [
   ...VOLTAGE_DROP_QUESTIONS,
   ...CALCULATION_QUESTIONS,
   ...EXTENDED_CALCULATION_QUESTIONS,
+].slice(0, 500);
+
+const MASTER_DEFINITION_QUESTIONS: Question[] = [
+  {
+    id: "mdef-1",
+    topic: "definitions",
+    prompt: "Which answer best describes a separately derived system in NEC usage?",
+    correctChoiceId: "b",
+    reference: "NEC Article 100",
+    choices: [
+      { id: "a", text: "Any system supplied by a feeder", explanation: "Too broad." },
+      { id: "b", text: "A premises wiring system whose power is derived from a source other than a service, and that has no direct electrical connection to another supply conductors except through grounding and bonding connections", explanation: "Correct." },
+      { id: "c", text: "Any branch circuit over 150 volts", explanation: "Incorrect." },
+      { id: "d", text: "Only a utility-owned transformer system", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mdef-2",
+    topic: "definitions",
+    prompt: "Which answer best describes service conductors in NEC terminology?",
+    correctChoiceId: "c",
+    reference: "NEC Article 100",
+    choices: [
+      { id: "a", text: "All conductors after the final overcurrent device", explanation: "That describes branch-circuit conductors in part, not service conductors." },
+      { id: "b", text: "Only grounded conductors on the line side of disconnects", explanation: "Too narrow." },
+      { id: "c", text: "The conductors from the service point to the service disconnecting means", explanation: "Correct." },
+      { id: "d", text: "Any conductors installed in service raceway", explanation: "Too broad." },
+    ],
+  },
+  {
+    id: "mdef-3",
+    topic: "definitions",
+    prompt: "On master-level exams, which NEC article is most central to branch-circuit, feeder, and service load calculations?",
+    correctChoiceId: "d",
+    reference: "NEC Article 220",
+    choices: [
+      { id: "a", text: "Article 250", explanation: "Grounding and bonding article." },
+      { id: "b", text: "Article 300", explanation: "Wiring methods article." },
+      { id: "c", text: "Article 430", explanation: "Motor article." },
+      { id: "d", text: "Article 220", explanation: "Correct." },
+    ],
+  },
+];
+
+const MASTER_GROUNDING_QUESTIONS: Question[] = [
+  {
+    id: "mgnd-1",
+    topic: "grounding",
+    prompt: "Which NEC article becomes especially important when sizing grounding electrode conductors and bonding service equipment?",
+    correctChoiceId: "a",
+    reference: "NEC Article 250",
+    choices: [
+      { id: "a", text: "Article 250", explanation: "Correct." },
+      { id: "b", text: "Article 210", explanation: "Branch circuits." },
+      { id: "c", text: "Article 230", explanation: "Service rules, but not the main grounding and bonding article." },
+      { id: "d", text: "Article 430", explanation: "Motors." },
+    ],
+  },
+  {
+    id: "mgnd-2",
+    topic: "grounding",
+    prompt: "Why is grounding and bonding a major master electrician exam topic?",
+    correctChoiceId: "c",
+    reference: "NEC 250",
+    choices: [
+      { id: "a", text: "Because it only applies to residential systems", explanation: "Incorrect." },
+      { id: "b", text: "Because it replaces overcurrent protection", explanation: "Incorrect." },
+      { id: "c", text: "Because it requires understanding fault-current paths, service bonding, and electrode systems in greater detail", explanation: "Correct." },
+      { id: "d", text: "Because it eliminates conductor sizing", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mgnd-3",
+    topic: "grounding",
+    prompt: "At a service, which location is the normal bonding point for the grounded conductor and equipment grounding/bonding path?",
+    correctChoiceId: "b",
+    reference: "NEC 250.24",
+    choices: [
+      { id: "a", text: "At every downstream panelboard", explanation: "Incorrect." },
+      { id: "b", text: "At the service disconnecting means", explanation: "Correct." },
+      { id: "c", text: "At the first receptacle outlet", explanation: "Incorrect." },
+      { id: "d", text: "Only at the utility transformer", explanation: "Incorrect." },
+    ],
+  },
+];
+
+const MASTER_MOTOR_QUESTIONS: Question[] = [
+  {
+    id: "mmot-1",
+    topic: "motors",
+    prompt: "Which NEC table is commonly used to find full-load current values for 3-phase AC motors on master-level exams?",
+    correctChoiceId: "c",
+    reference: "NEC Table 430.250",
+    choices: [
+      { id: "a", text: "Table 240.6(A)", explanation: "Breaker ratings." },
+      { id: "b", text: "Table 310.16", explanation: "Ampacity table." },
+      { id: "c", text: "Table 430.250", explanation: "Correct." },
+      { id: "d", text: "Chapter 9 Table 1", explanation: "Conduit fill." },
+    ],
+  },
+  {
+    id: "mmot-2",
+    topic: "motors",
+    prompt: "Why do master-level motor questions often require careful distinction between overload protection and short-circuit/ground-fault protection?",
+    correctChoiceId: "a",
+    reference: "NEC Article 430",
+    choices: [
+      { id: "a", text: "Because the NEC treats them as different protective functions with different sizing rules", explanation: "Correct." },
+      { id: "b", text: "Because they are always sized the same", explanation: "Incorrect." },
+      { id: "c", text: "Because overload protection replaces conductor sizing", explanation: "Incorrect." },
+      { id: "d", text: "Because motors never need branch-circuit protection", explanation: "Incorrect." },
+    ],
+  },
+];
+
+const MASTER_CONDUIT_QUESTIONS: Question[] = [
+  {
+    id: "mcon-1",
+    topic: "conduit",
+    prompt: "For more than two conductors in a raceway, what maximum fill percentage is generally used from NEC Chapter 9, Table 1?",
+    correctChoiceId: "d",
+    reference: "NEC Chapter 9 Table 1",
+    choices: [
+      { id: "a", text: "31%", explanation: "That applies to exactly two conductors." },
+      { id: "b", text: "35%", explanation: "Incorrect." },
+      { id: "c", text: "53%", explanation: "That applies to a single conductor." },
+      { id: "d", text: "40%", explanation: "Correct." },
+    ],
+  },
+  {
+    id: "mcon-2",
+    topic: "conduit",
+    prompt: "Why do conduit-fill questions remain important on master electrician exams?",
+    correctChoiceId: "b",
+    reference: "NEC Chapter 9",
+    choices: [
+      { id: "a", text: "Because raceway fill is no longer tied to code rules", explanation: "Incorrect." },
+      { id: "b", text: "Because they test code navigation, table use, and practical installation limits", explanation: "Correct." },
+      { id: "c", text: "Because raceway fill only matters for motors", explanation: "Incorrect." },
+      { id: "d", text: "Because all raceways are always filled to 53%", explanation: "Incorrect." },
+    ],
+  },
+];
+
+const MASTER_VOLTAGE_DROP_QUESTIONS: Question[] = [
+  {
+    id: "mvd-1",
+    topic: "voltage_drop",
+    prompt: "A 480V feeder has a calculated drop of 9.6V. What is the percentage voltage drop?",
+    correctChoiceId: "a",
+    reference: "Voltage drop formula",
+    choices: [
+      { id: "a", text: "2%", explanation: "Correct. 9.6 ÷ 480 = 0.02 = 2%." },
+      { id: "b", text: "2.5%", explanation: "Too high." },
+      { id: "c", text: "3%", explanation: "Too high." },
+      { id: "d", text: "4%", explanation: "Too high." },
+    ],
+  },
+  {
+    id: "mvd-2",
+    topic: "voltage_drop",
+    prompt: "A 208V branch circuit has a 5.2V drop. What is the approximate percentage voltage drop?",
+    correctChoiceId: "c",
+    reference: "Voltage drop formula",
+    choices: [
+      { id: "a", text: "1.5%", explanation: "Too low." },
+      { id: "b", text: "2%", explanation: "Too low." },
+      { id: "c", text: "2.5%", explanation: "Correct. 5.2 ÷ 208 = 0.025 = 2.5%." },
+      { id: "d", text: "3.5%", explanation: "Too high." },
+    ],
+  },
+];
+
+const MASTER_CALCULATION_QUESTIONS: Question[] = [
+  {
+    id: "mcalc-1",
+    topic: "calculations",
+    prompt: "For a 277/480V, 3-phase, 4-wire wye service with a calculated load of 360A, what minimum standard ampere rating is permitted for the service disconnecting means?",
+    correctChoiceId: "a",
+    reference: "NEC 230.79 and 240.6(A)",
+    choices: [
+      { id: "a", text: "400A", explanation: "Correct. A 360A calculated load requires at least the next standard rating of 400A." },
+      { id: "b", text: "350A", explanation: "Below the calculated load." },
+      { id: "c", text: "450A", explanation: "Above the minimum required standard size." },
+      { id: "d", text: "500A", explanation: "Above the minimum required standard size." },
+    ],
+  },
+  {
+    id: "mcalc-2",
+    topic: "calculations",
+    prompt: "A 225 kVA single-phase transformer is rated at 480V on the primary. What is the full-load primary current?",
+    correctChoiceId: "b",
+    reference: "Transformer current formula",
+    choices: [
+      { id: "a", text: "375A", explanation: "Too low." },
+      { id: "b", text: "468.75A", explanation: "Correct. 225,000 ÷ 480 = 468.75A." },
+      { id: "c", text: "500A", explanation: "Not the exact full-load current." },
+      { id: "d", text: "562.5A", explanation: "Too high." },
+    ],
+  },
+  {
+    id: "mcalc-3",
+    topic: "calculations",
+    prompt: "If a feeder supplies a continuous load of 160A, what minimum ampacity must the feeder conductors have before any other adjustments or corrections?",
+    correctChoiceId: "d",
+    reference: "Continuous-load sizing concept",
+    choices: [
+      { id: "a", text: "160A", explanation: "Too low." },
+      { id: "b", text: "180A", explanation: "Incorrect." },
+      { id: "c", text: "190A", explanation: "Incorrect." },
+      { id: "d", text: "200A", explanation: "Correct. 160A × 125% = 200A." },
+    ],
+  },
+  {
+    id: "mcalc-4",
+    topic: "calculations",
+    prompt: "Which NEC article is the main starting point for advanced service and feeder load calculations on master-level exams?",
+    correctChoiceId: "c",
+    reference: "NEC Article 220",
+    choices: [
+      { id: "a", text: "Article 210", explanation: "Branch circuits." },
+      { id: "b", text: "Article 215", explanation: "Feeders, but not the main load-calculation article." },
+      { id: "c", text: "Article 220", explanation: "Correct." },
+      { id: "d", text: "Article 250", explanation: "Grounding and bonding." },
+    ],
+  },
+  {
+    id: "mcalc-5",
+    topic: "calculations",
+    prompt: "A 480V 3-phase system serves a 100A load for this question. Using the simplified formula VA = 1.732 × V × I, what is the approximate apparent power?",
+    correctChoiceId: "b",
+    reference: "Three-phase power formula",
+    choices: [
+      { id: "a", text: "48,000 VA", explanation: "That ignores the 1.732 factor." },
+      { id: "b", text: "83,136 VA", explanation: "Correct. 1.732 × 480 × 100 = 83,136 VA." },
+      { id: "c", text: "66,240 VA", explanation: "Incorrect." },
+      { id: "d", text: "96,000 VA", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mcalc-6",
+    topic: "calculations",
+    prompt: "Why do master-level calculation questions often combine service size, demand factors, and standard overcurrent device ratings?",
+    correctChoiceId: "c",
+    reference: "Master exam calculation structure",
+    choices: [
+      { id: "a", text: "Because conductor ampacity rules no longer matter", explanation: "Incorrect." },
+      { id: "b", text: "Because only residential loads are tested", explanation: "Incorrect." },
+      { id: "c", text: "Because master exams emphasize multi-step code application instead of single-formula answers", explanation: "Correct." },
+      { id: "d", text: "Because all service calculations are identical", explanation: "Incorrect." },
+    ],
+  },
+];
+
+const MASTER_QUESTIONS: Question[] = [
+  ...MASTER_DEFINITION_QUESTIONS,
+  ...MASTER_GROUNDING_QUESTIONS,
+  ...MASTER_MOTOR_QUESTIONS,
+  ...MASTER_CONDUIT_QUESTIONS,
+  ...MASTER_VOLTAGE_DROP_QUESTIONS,
+  ...MASTER_CALCULATION_QUESTIONS,
 ].slice(0, 500);
 
 function shuffleArray<T>(items: T[]) {
@@ -626,15 +890,15 @@ function shuffleArray<T>(items: T[]) {
   return arr;
 }
 
-function buildJourneymanSet(source: Question[]) {
+function buildMockSet(source: Question[], count: number, suffix: string) {
   const base = shuffleArray(source);
   const out: Question[] = [];
 
-  while (out.length < JOURNEYMAN_QUESTION_COUNT) {
+  while (out.length < count) {
     const template = base[out.length % base.length];
     out.push({
       ...template,
-      id: `${template.id}-jx-${out.length + 1}`,
+      id: `${template.id}-${suffix}-${out.length + 1}`,
     });
   }
 
@@ -651,7 +915,8 @@ function formatClock(totalSeconds: number) {
 
 export function Simulator() {
   const [topic, setTopic] = useState<TopicId>("mixed");
-  const [mode, setMode] = useState<"practice" | "exam" | "journeyman">("practice");
+  const [track, setTrack] = useState<TrackId>("journeyman");
+  const [mode, setMode] = useState<"practice" | "exam" | "mock">("practice");
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [index, setIndex] = useState(0);
@@ -683,8 +948,11 @@ export function Simulator() {
   });
 
   const baseQuestions = useMemo(() => {
-    return topic === "mixed" ? QUESTIONS : QUESTIONS.filter((q) => q.topic === topic);
-  }, [topic]);
+    const questionBank = track === "master" ? MASTER_QUESTIONS : JOURNEYMAN_QUESTIONS;
+    return topic === "mixed"
+      ? questionBank
+      : questionBank.filter((q) => q.topic === topic);
+  }, [topic, track]);
 
   const questions = started ? sessionQuestions : baseQuestions;
 
@@ -700,7 +968,7 @@ export function Simulator() {
   }, [answers, questions]);
 
   useEffect(() => {
-    if (!started || submitted || (mode !== "exam" && mode !== "journeyman")) return;
+    if (!started || submitted || (mode !== "exam" && mode !== "mock")) return;
 
     const timer = window.setInterval(() => {
       setSecondsLeft((prev) => {
@@ -722,7 +990,7 @@ export function Simulator() {
     setIndex(0);
     setAnswers({});
     setSessionQuestions([]);
-    setSecondsLeft(nextMode === "journeyman" ? JOURNEYMAN_SECONDS : EXAM_SECONDS);
+    setSecondsLeft(nextMode === "mock" ? MOCK_SECONDS : EXAM_SECONDS);
   }
 
   function pick(choiceId: string) {
@@ -735,21 +1003,31 @@ export function Simulator() {
     reset(mode);
   }
 
+  function setTrackAndReset(nextTrack: TrackId) {
+    setTrack(nextTrack);
+    reset(mode);
+  }
+
   function setModeAndReset(nextMode: typeof mode) {
     setMode(nextMode);
     reset(nextMode);
   }
 
   function beginSession() {
-    const randomized = mode === "journeyman"
-      ? buildJourneymanSet(baseQuestions)
-      : shuffleArray(baseQuestions);
+    const randomized =
+      mode === "mock"
+        ? buildMockSet(
+            baseQuestions,
+            MOCK_QUESTION_COUNT,
+            track === "master" ? "mx" : "jx"
+          )
+        : shuffleArray(baseQuestions);
 
     setSessionQuestions(randomized);
     setAnswers({});
     setSubmitted(false);
     setIndex(0);
-    setSecondsLeft(mode === "journeyman" ? JOURNEYMAN_SECONDS : EXAM_SECONDS);
+    setSecondsLeft(mode === "mock" ? MOCK_SECONDS : EXAM_SECONDS);
     setStarted(true);
   }
 
@@ -789,6 +1067,18 @@ export function Simulator() {
           </div>
 
           <div>
+            <label className="text-sm font-bold text-black">Track</label>
+            <select
+              className="mt-2 rounded border border-black px-3 py-2 text-sm text-black"
+              value={track}
+              onChange={(e) => setTrackAndReset(e.target.value as TrackId)}
+            >
+              <option value="journeyman">Journeyman</option>
+              <option value="master">Master</option>
+            </select>
+          </div>
+
+          <div>
             <label className="text-sm font-bold text-black">Mode</label>
             <select
               className="mt-2 rounded border border-black px-3 py-2 text-sm text-black"
@@ -797,23 +1087,27 @@ export function Simulator() {
             >
               <option value="practice">Practice</option>
               <option value="exam">Timed Exam</option>
-              <option value="journeyman">Journeyman Mock Exam</option>
+              <option value="mock">Mock Exam</option>
             </select>
           </div>
         </div>
 
         <h2 className="mt-5 text-lg font-extrabold">Exam Simulator</h2>
         <p className="mt-1 text-sm text-black/70">
-          Topic filtering, timer mode, and NEC-style questions are now active.
+          Topic filtering, track selection, timer mode, and NEC-style questions
+          are now active.
         </p>
 
         <div className="mt-4 text-sm text-black/80">
-          Questions: <span className="font-bold text-black">{mode === "journeyman" ? JOURNEYMAN_QUESTION_COUNT : baseQuestions.length}</span>
-          {mode === "exam" || mode === "journeyman" ? (
+          Questions: <span className="font-bold text-black">{mode === "mock" ? MOCK_QUESTION_COUNT : baseQuestions.length}</span>
+          {mode === "exam" || mode === "mock" ? (
             <span className="ml-4">
-              Timer: <span className="font-bold text-black">{formatClock(mode === "journeyman" ? JOURNEYMAN_SECONDS : EXAM_SECONDS)}</span>
+              Timer: <span className="font-bold text-black">{formatClock(mode === "mock" ? MOCK_SECONDS : EXAM_SECONDS)}</span>
             </span>
           ) : null}
+          <span className="ml-4">
+            Track: <span className="font-bold text-black">{track === "master" ? "Master" : "Journeyman"}</span>
+          </span>
         </div>
 
         <div className="mt-4 grid gap-2 rounded-lg border bg-neutral-50 p-4 text-sm text-black/80 sm:grid-cols-3">
@@ -829,11 +1123,11 @@ export function Simulator() {
         </div>
 
         <button className="mizo-btn mt-4" onClick={beginSession}>
-          {mode === "journeyman"
-            ? "Start journeyman mock exam"
+          {mode === "mock"
+            ? `Start ${track} mock exam`
             : mode === "exam"
-              ? "Start timed exam"
-              : "Start practice"}
+              ? `Start ${track} timed exam`
+              : `Start ${track} practice`}
         </button>
       </section>
     );
@@ -931,7 +1225,11 @@ export function Simulator() {
             Question {index + 1} of {questions.length}
           </div>
           <h2 className="mt-1 text-lg font-extrabold">
-            {mode === "journeyman" ? "Journeyman Mock Exam" : mode === "exam" ? "Timed Exam" : "Simulation"}
+            {mode === "mock"
+              ? `${track === "master" ? "Master" : "Journeyman"} Mock Exam`
+              : mode === "exam"
+                ? `${track === "master" ? "Master" : "Journeyman"} Timed Exam`
+                : `${track === "master" ? "Master" : "Journeyman"} Practice`}
           </h2>
           <div className="mt-1 text-xs text-black/60">
             Topic: {TOPICS.find((t) => t.id === topic)?.label}
@@ -939,7 +1237,7 @@ export function Simulator() {
         </div>
 
         <div className="flex items-center gap-3">
-          {mode === "exam" || mode === "journeyman" ? (
+          {mode === "exam" || mode === "mock" ? (
             <div className="rounded border border-black bg-yellow-50 px-3 py-2 text-xs font-bold text-black">
               Time left: {formatClock(secondsLeft)}
             </div>

@@ -4,7 +4,14 @@ import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const DEMO_QUESTIONS = [
+type DemoQuestion = {
+  question: string;
+  choices: string[];
+  answer: number;
+  explanation: string;
+};
+
+const JOURNEYMAN_DEMO_QUESTIONS: DemoQuestion[] = [
   {
     question:
       "What is the minimum size copper equipment grounding conductor for a 100-amp overcurrent device?",
@@ -30,18 +37,66 @@ const DEMO_QUESTIONS = [
   },
 ];
 
+const MASTER_DEMO_QUESTIONS: DemoQuestion[] = [
+  {
+    question:
+      "For a 277/480V, 3-phase, 4-wire wye service with a calculated load of 360 amperes, what is the minimum standard ampere rating permitted for the service disconnecting means?",
+    choices: ["400A", "350A", "450A", "500A"],
+    answer: 0,
+    explanation:
+      "Per NEC 230.79 and standard ampere ratings in 240.6(A), a calculated service load of 360A requires a disconnect rating of at least 400A.",
+  },
+  {
+    question:
+      "Which NEC article is the primary starting point for sizing grounded conductors for services and feeders when doing advanced load and demand work?",
+    choices: ["Article 215", "Article 220", "Article 250", "Article 430"],
+    answer: 1,
+    explanation:
+      "Article 220 is the core article for branch-circuit, feeder, and service load calculations and is central to master-level exam calculation work.",
+  },
+  {
+    question:
+      "When sizing grounding electrode conductor connections and reviewing bonding requirements for service equipment, which NEC article becomes especially important on master-level exams?",
+    choices: ["Article 110", "Article 210", "Article 250", "Article 300"],
+    answer: 2,
+    explanation:
+      "Article 250 governs grounding and bonding and is a major focus area on master electrician exams because of its depth and application complexity.",
+  },
+];
+
 const BENEFITS = [
   "NEC-referenced questions",
   "Timed exam simulator",
   "Clear calculation walkthroughs",
   "Built by an experienced electrician",
-  "Built for electricians nationwide",
+  "Journeyman and Master exam prep",
 ];
 
 const TRUST_ITEMS = [
-  "NEC-style practice",
+  "Journeyman + Master prep",
   "Timed exam simulator",
   "Built by a 24-year electrician",
+];
+
+const EXAM_TRACKS = [
+  {
+    title: "Journeyman Electrician Simulator",
+    description:
+      "Practice NEC-style questions, timed simulations, and calculation walkthroughs built to help electricians prepare for the Journeyman exam.",
+    price: "$49/month",
+    cta: "Start Journeyman Training",
+    source: "journeyman_track",
+    badge: "Journeyman",
+  },
+  {
+    title: "Master Electrician Simulator",
+    description:
+      "Train with a separate paid simulator built around a master-level question bank covering advanced code navigation, service and feeder calculations, grounding and bonding, and more complex commercial and industrial exam-style scenarios.",
+    price: "$79/month",
+    cta: "Start Master Training",
+    source: "master_track",
+    badge: "Master",
+  },
 ];
 
 const STEPS = [
@@ -119,13 +174,27 @@ const FAQS = [
     answer:
       "Yes. Mizo Mastery includes timed practice to help you build speed, confidence, and exam-day readiness.",
   },
+  {
+    question: "Is the Master simulator built around master-level topics?",
+    answer:
+      "Yes. The Master Electrician simulator is designed around a more advanced question bank with deeper code navigation, tougher calculations, grounding and bonding work, and more complex commercial and industrial scenarios.",
+  },
 ];
 
-const PRICING_FEATURES = [
+const JOURNEYMAN_PRICING_FEATURES = [
   "Unlimited NEC-style practice questions",
   "Timed exam simulations",
   "Step-by-step calculation walkthroughs",
   "Built for electricians preparing for the Journeyman exam",
+  "30-Day Confidence Guarantee",
+  "Cancel anytime",
+];
+
+const MASTER_PRICING_FEATURES = [
+  "Master-level NEC question bank",
+  "Advanced service and feeder calculations",
+  "Grounding, bonding, and code navigation practice",
+  "Commercial and industrial exam-style scenarios",
   "30-Day Confidence Guarantee",
   "Cancel anytime",
 ];
@@ -152,13 +221,20 @@ function trackEvent(eventName: string, props?: Record<string, string>) {
 }
 
 function LandingInner() {
-  const demoQuestion = useMemo(() => {
-    const index = Math.floor(Math.random() * DEMO_QUESTIONS.length);
-    return DEMO_QUESTIONS[index];
-  }, []);
-
+  const [demoTrack, setDemoTrack] = useState<"journeyman" | "master">(
+    "journeyman"
+  );
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  const demoQuestion = useMemo(() => {
+    const pool =
+      demoTrack === "master"
+        ? MASTER_DEMO_QUESTIONS
+        : JOURNEYMAN_DEMO_QUESTIONS;
+    const index = Math.floor(Math.random() * pool.length);
+    return pool[index];
+  }, [demoTrack]);
 
   function handleLoginClick(source: string) {
     trackEvent("login_click", { source });
@@ -182,6 +258,13 @@ function LandingInner() {
       choiceIndex: String(index),
     });
     setSelected(index);
+    setSubmitted(false);
+  }
+
+  function handleDemoTrackChange(track: "journeyman" | "master") {
+    trackEvent("demo_track_change", { track });
+    setDemoTrack(track);
+    setSelected(null);
     setSubmitted(false);
   }
 
@@ -236,7 +319,7 @@ function LandingInner() {
                   className="mizo-btn"
                   onClick={() => startCheckout("hero_primary")}
                 >
-                  Start Training — $79/month
+                  Start Training — $49/month
                 </button>
 
                 <Link
@@ -334,6 +417,53 @@ function LandingInner() {
           </div>
         </section>
 
+        <section className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="text-center">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+              Choose Your Simulator
+            </div>
+            <h2 className="mt-2 text-3xl font-black text-neutral-950">
+              Separate Paid Simulators for Journeyman and Master Prep
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+              Choose the exam path you are preparing for and train inside the
+              simulator built for that level.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            {EXAM_TRACKS.map((track) => (
+              <div
+                key={track.title}
+                className="rounded-[28px] border border-neutral-200 bg-neutral-50 p-6 shadow-sm"
+              >
+                <div className="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-yellow-800">
+                  {track.badge}
+                </div>
+
+                <h3 className="mt-4 text-2xl font-black text-neutral-950">
+                  {track.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+                  {track.description}
+                </p>
+
+                <div className="mt-5 text-3xl font-black text-neutral-950">
+                  {track.price}
+                </div>
+
+                <button
+                  className="mizo-btn mt-6"
+                  onClick={() => startCheckout(track.source)}
+                >
+                  {track.cta}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="rounded-[28px] border border-neutral-200 bg-white p-6 text-center shadow-sm">
           <h2 className="text-2xl font-black text-neutral-950">
             Free Electrician Practice Questions
@@ -403,15 +533,38 @@ function LandingInner() {
 
         <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-8">
           <h2 className="text-3xl font-black text-neutral-950">
-            Try a Real Mizo Question
+            Try a Sample Question Bank
           </h2>
 
           <p className="mt-2 text-sm leading-7 text-neutral-600 sm:text-base">
-            This is a sample from the simulator. Each visit shows a different
-            question.
+            Switch between Journeyman and Master sample questions. Each visit
+            shows a different question from that exam track.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-base font-semibold leading-7 text-neutral-900 sm:text-lg">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button
+              className={`rounded-xl px-4 py-3 text-sm font-bold transition ${
+                demoTrack === "journeyman"
+                  ? "bg-yellow-400 text-neutral-950"
+                  : "border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-50"
+              }`}
+              onClick={() => handleDemoTrackChange("journeyman")}
+            >
+              Journeyman Question Bank
+            </button>
+            <button
+              className={`rounded-xl px-4 py-3 text-sm font-bold transition ${
+                demoTrack === "master"
+                  ? "bg-yellow-400 text-neutral-950"
+                  : "border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-50"
+              }`}
+              onClick={() => handleDemoTrackChange("master")}
+            >
+              Master Question Bank
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-base font-semibold leading-7 text-neutral-900 sm:text-lg">
             {demoQuestion.question}
           </div>
 
@@ -451,7 +604,8 @@ function LandingInner() {
           {submitted && (
             <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
               <div className="font-bold text-yellow-800">
-                Correct Answer: {demoQuestion.choices[demoQuestion.answer]}
+                {demoTrack === "master" ? "Master" : "Journeyman"} Correct
+                Answer: {demoQuestion.choices[demoQuestion.answer]}
               </div>
               <p className="mt-2 text-neutral-700">{demoQuestion.explanation}</p>
             </div>
@@ -559,45 +713,86 @@ function LandingInner() {
               Pricing
             </div>
             <h2 className="mt-2 text-3xl font-black text-neutral-950">
-              Start Training with Mizo Mastery
+              Paid Exam Simulators for Journeyman and Master Prep
             </h2>
             <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
-              Get full access to NEC-style practice, timed simulations, and
-              step-by-step explanations built for working electricians
-              nationwide.
+              Get access to separate paid simulators for Journeyman and Master
+              electrician exam prep, including a dedicated master-level question
+              bank built around tougher code work, calculations, and exam-style
+              scenarios.
             </p>
           </div>
 
-          <div className="mx-auto mt-8 max-w-xl rounded-[28px] border border-yellow-200 bg-yellow-50 p-6 text-center">
-            <div className="text-sm font-bold uppercase tracking-[0.2em] text-yellow-700">
-              Pro Access
-            </div>
-            <div className="mt-3 text-5xl font-black text-neutral-950">
-              $79
-              <span className="text-lg font-semibold text-neutral-700">/month</span>
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-[28px] border border-yellow-200 bg-yellow-50 p-6 text-center">
+              <div className="text-sm font-bold uppercase tracking-[0.2em] text-yellow-700">
+                Journeyman Simulator
+              </div>
+              <div className="mt-3 text-5xl font-black text-neutral-950">
+                $49
+                <span className="text-lg font-semibold text-neutral-700">
+                  /month
+                </span>
+              </div>
+
+              <p className="mt-3 text-sm font-semibold text-neutral-700">
+                Built for electricians getting ready for the Journeyman exam.
+              </p>
+
+              <div className="mt-6 space-y-3 text-left">
+                {JOURNEYMAN_PRICING_FEATURES.map((item) => (
+                  <div
+                    key={`journeyman-${item}`}
+                    className="rounded-2xl border border-yellow-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900"
+                  >
+                    ✓ {item}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="mizo-btn mt-6"
+                onClick={() => startCheckout("pricing_journeyman")}
+              >
+                Start Journeyman Training
+              </button>
             </div>
 
-            <p className="mt-3 text-sm font-semibold text-neutral-700">
-              Built for electricians who want serious exam prep.
-            </p>
+            <div className="rounded-[28px] border border-neutral-200 bg-white p-6 text-center shadow-sm">
+              <div className="text-sm font-bold uppercase tracking-[0.2em] text-yellow-700">
+                Master Simulator
+              </div>
+              <div className="mt-3 text-5xl font-black text-neutral-950">
+                $79
+                <span className="text-lg font-semibold text-neutral-700">
+                  /month
+                </span>
+              </div>
 
-            <div className="mt-6 space-y-3 text-left">
-              {PRICING_FEATURES.map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-yellow-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900"
-                >
-                  ✓ {item}
-                </div>
-              ))}
+              <p className="mt-3 text-sm font-semibold text-neutral-700">
+                Built for electricians preparing for the Master Electrician exam
+                with a question bank that focuses on deeper code knowledge and
+                tougher exam-style problems.
+              </p>
+
+              <div className="mt-6 space-y-3 text-left">
+                {MASTER_PRICING_FEATURES.map((item) => (
+                  <div
+                    key={`master-${item}`}
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-900"
+                  >
+                    ✓ {item}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="mizo-btn mt-6"
+                onClick={() => startCheckout("pricing_master")}
+              >
+                Start Master Training
+              </button>
             </div>
-
-            <button
-              className="mizo-btn mt-6"
-              onClick={() => startCheckout("pricing_primary")}
-            >
-              Start Training Now
-            </button>
           </div>
         </section>
 
