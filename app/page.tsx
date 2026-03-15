@@ -305,13 +305,13 @@ function LandingInner() {
               </div>
 
               <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight text-neutral-950 sm:text-5xl lg:text-6xl">
-                Pass Your Journeyman Exam the First Time.
+                PASS YOUR JOURNEYMAN OR MASTER EXAM THE FIRST TIME.
               </h1>
 
               <p className="mt-5 max-w-2xl text-base leading-7 text-neutral-700 sm:text-lg sm:leading-8">
-                Real NEC-style exam simulations, timed practice tests, and clear
-                step-by-step explanations built for working electricians across
-                the country.
+                Real NEC-style Journeyman and Master exam simulations, timed
+                practice tests, and clear step-by-step explanations built for
+                working electricians across the country.
               </p>
 
               <p className="mt-4 text-sm font-semibold text-yellow-700 sm:text-base">
