@@ -16,6 +16,45 @@ function isLikelyCheckoutSessionId(id: string) {
   return /^cs_(test|live)_[A-Za-z0-9_]+$/.test(id);
 }
 
+function getJourneymanPriceId() {
+  return (
+    process.env.STRIPE_JOURNEYMAN_PRICE_ID ??
+    process.env.NEXT_PUBLIC_STRIPE_JOURNEYMAN_PRICE_ID
+  )?.trim() ?? null;
+}
+
+function getMasterPriceId() {
+  return (
+    process.env.STRIPE_MASTER_PRICE_ID ??
+    process.env.NEXT_PUBLIC_STRIPE_MASTER_PRICE_ID
+  )?.trim() ?? null;
+}
+
+function getTrackFromPriceId(priceId: string | null) {
+  if (!priceId) return null;
+  if (priceId === getJourneymanPriceId()) return "journeyman";
+  if (priceId === getMasterPriceId()) return "master";
+  return null;
+}
+
+async function getCheckoutSessionTrack(
+  stripe: Stripe,
+  sessionId: string
+): Promise<"journeyman" | "master" | null> {
+  const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+    limit: 10,
+  });
+
+  for (const item of lineItems.data) {
+    const priceId =
+      typeof item.price === "string" ? item.price : item.price?.id ?? null;
+    const track = getTrackFromPriceId(priceId);
+    if (track) return track;
+  }
+
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const secret = process.env.STRIPE_SECRET_KEY?.trim();
@@ -44,6 +83,7 @@ export async function GET(req: NextRequest) {
     if (!paymentOk && !subOk) {
       return jsonError("Payment not completed", 402);
     }
+    const track = await getCheckoutSessionTrack(stripe, sessionId);
 
     const email =
       session.customer_details?.email ??
@@ -55,6 +95,7 @@ export async function GET(req: NextRequest) {
         access: true,
         verified: true,
         email,
+        track,
       },
       { status: 200 }
     );

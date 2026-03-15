@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { Simulator } from "./simulator";
 
@@ -82,6 +82,7 @@ const TOPIC_OPTIONS: TopicOption[] = [
 
 export default function AppPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -93,6 +94,8 @@ export default function AppPage() {
 
   const [authChecked, setAuthChecked] = useState(false);
   const [topic, setTopic] = useState("mixed");
+  const requestedTrack =
+    searchParams.get("track") === "master" ? "master" : "journeyman";
 
   const currentTopic = useMemo(
     () => TOPIC_OPTIONS.find((item) => item.value === topic) ?? TOPIC_OPTIONS[0],
@@ -204,9 +207,15 @@ export default function AppPage() {
               <div className="text-sm font-black uppercase tracking-[0.25em] text-yellow-300">
                 Mizo Mastery
               </div>
-              <h1 className="mt-2 text-3xl font-extrabold">Journeyman Exam Simulator</h1>
+              <h1 className="mt-2 text-3xl font-extrabold">
+                {requestedTrack === "master"
+                  ? "Master Electrician Exam Simulator"
+                  : "Journeyman Electrician Exam Simulator"}
+              </h1>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-white/75">
-                Focus your practice by topic, build speed under pressure, and train with an exam-style simulator designed for working electricians.
+                {requestedTrack === "master"
+                  ? "Focus your practice by topic, build speed under pressure, and train with a master-level exam simulator built for tougher code work, calculations, and commercial-style scenarios."
+                  : "Focus your practice by topic, build speed under pressure, and train with an exam-style simulator designed for working electricians."}
               </p>
             </div>
 
@@ -277,7 +286,7 @@ export default function AppPage() {
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur sm:p-6">
           <div id="simulator">
-            <Simulator />
+            <Simulator initialTrack={requestedTrack} />
           </div>
         </section>
       </div>

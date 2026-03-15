@@ -27,7 +27,12 @@ type Question = {
   reference?: string;
 };
 
+
 type TrackId = "journeyman" | "master";
+
+type SimulatorProps = {
+  initialTrack?: TrackId;
+};
 
 const TOPICS: Array<{ id: TopicId; label: string }> = [
   { id: "mixed", label: "Mixed" },
@@ -660,6 +665,45 @@ const MASTER_DEFINITION_QUESTIONS: Question[] = [
       { id: "d", text: "Article 220", explanation: "Correct." },
     ],
   },
+  {
+    id: "mdef-4",
+    topic: "definitions",
+    prompt: "Which NEC article is the main starting point for service conductors, service equipment, and service disconnecting means?",
+    correctChoiceId: "a",
+    reference: "NEC Article 230",
+    choices: [
+      { id: "a", text: "Article 230", explanation: "Correct." },
+      { id: "b", text: "Article 240", explanation: "Overcurrent protection article." },
+      { id: "c", text: "Article 250", explanation: "Grounding and bonding article." },
+      { id: "d", text: "Article 300", explanation: "General wiring methods article." },
+    ],
+  },
+  {
+    id: "mdef-5",
+    topic: "definitions",
+    prompt: "Which answer best describes an overcurrent protective device in NEC usage?",
+    correctChoiceId: "d",
+    reference: "NEC Article 100",
+    choices: [
+      { id: "a", text: "A device used only for motor overload protection", explanation: "Too narrow." },
+      { id: "b", text: "A disconnect that never opens automatically", explanation: "Incorrect." },
+      { id: "c", text: "Any controller installed ahead of a feeder", explanation: "Too broad." },
+      { id: "d", text: "A device capable of providing protection for service, feeder, and branch-circuit conductors and equipment over the full range of overcurrents between its rated current and its interrupting rating", explanation: "Correct." },
+    ],
+  },
+  {
+    id: "mdef-6",
+    topic: "definitions",
+    prompt: "On a master exam, which article is most associated with feeder requirements?",
+    correctChoiceId: "b",
+    reference: "NEC Article 215",
+    choices: [
+      { id: "a", text: "Article 210", explanation: "Branch circuits." },
+      { id: "b", text: "Article 215", explanation: "Correct." },
+      { id: "c", text: "Article 220", explanation: "Load calculations article." },
+      { id: "d", text: "Article 430", explanation: "Motors." },
+    ],
+  },
 ];
 
 const MASTER_GROUNDING_QUESTIONS: Question[] = [
@@ -702,6 +746,45 @@ const MASTER_GROUNDING_QUESTIONS: Question[] = [
       { id: "d", text: "Only at the utility transformer", explanation: "Incorrect." },
     ],
   },
+  {
+    id: "mgnd-4",
+    topic: "grounding",
+    prompt: "What is the main reason master-level grounding questions are often harder than journeyman-level grounding questions?",
+    correctChoiceId: "c",
+    reference: "NEC Article 250",
+    choices: [
+      { id: "a", text: "Because grounding no longer depends on code references", explanation: "Incorrect." },
+      { id: "b", text: "Because only utility systems are tested", explanation: "Incorrect." },
+      { id: "c", text: "Because they often require applying multiple bonding and grounding rules together across services, feeders, and separately derived systems", explanation: "Correct." },
+      { id: "d", text: "Because equipment grounding conductors replace overcurrent devices", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mgnd-5",
+    topic: "grounding",
+    prompt: "Which NEC section is commonly associated with grounding electrode conductor sizing by conductor size concepts on master-level exams?",
+    correctChoiceId: "a",
+    reference: "NEC 250.66",
+    choices: [
+      { id: "a", text: "250.66", explanation: "Correct." },
+      { id: "b", text: "250.122", explanation: "Equipment grounding conductor sizing." },
+      { id: "c", text: "210.19", explanation: "Branch-circuit conductor sizing." },
+      { id: "d", text: "430.22", explanation: "Motor conductor sizing." },
+    ],
+  },
+  {
+    id: "mgnd-6",
+    topic: "grounding",
+    prompt: "At a separately derived system, what is one major grounding and bonding concept commonly tested at the master level?",
+    correctChoiceId: "b",
+    reference: "NEC 250.30",
+    choices: [
+      { id: "a", text: "That grounding is never required", explanation: "Incorrect." },
+      { id: "b", text: "That the bonding and grounding connections must be evaluated under separately derived system rules rather than standard service rules alone", explanation: "Correct." },
+      { id: "c", text: "That neutrals are always isolated from all bonding points everywhere", explanation: "Too broad and inaccurate." },
+      { id: "d", text: "That equipment grounding conductors are optional", explanation: "Incorrect." },
+    ],
+  },
 ];
 
 const MASTER_MOTOR_QUESTIONS: Question[] = [
@@ -729,6 +812,45 @@ const MASTER_MOTOR_QUESTIONS: Question[] = [
       { id: "b", text: "Because they are always sized the same", explanation: "Incorrect." },
       { id: "c", text: "Because overload protection replaces conductor sizing", explanation: "Incorrect." },
       { id: "d", text: "Because motors never need branch-circuit protection", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mmot-3",
+    topic: "motors",
+    prompt: "Which NEC article is the primary source for motor branch-circuit conductors, short-circuit protection, and overload protection rules?",
+    correctChoiceId: "d",
+    reference: "NEC Article 430",
+    choices: [
+      { id: "a", text: "Article 250", explanation: "Grounding and bonding." },
+      { id: "b", text: "Article 300", explanation: "General wiring methods." },
+      { id: "c", text: "Article 310", explanation: "General conductor ampacity rules." },
+      { id: "d", text: "Article 430", explanation: "Correct." },
+    ],
+  },
+  {
+    id: "mmot-4",
+    topic: "motors",
+    prompt: "Why are motor questions often considered master-level exam material?",
+    correctChoiceId: "a",
+    reference: "NEC Article 430",
+    choices: [
+      { id: "a", text: "Because they often require multiple-step coordination of conductor sizing, overload protection, short-circuit protection, and disconnect rules", explanation: "Correct." },
+      { id: "b", text: "Because motor questions never involve calculations", explanation: "Incorrect." },
+      { id: "c", text: "Because motors use feeder rules only", explanation: "Incorrect." },
+      { id: "d", text: "Because disconnects are not required for motors", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mmot-5",
+    topic: "motors",
+    prompt: "Which table is typically used for three-phase motor full-load current values when the nameplate current is not the sizing basis for a question?",
+    correctChoiceId: "b",
+    reference: "NEC Table 430.250",
+    choices: [
+      { id: "a", text: "Table 310.16", explanation: "General ampacity table." },
+      { id: "b", text: "Table 430.250", explanation: "Correct." },
+      { id: "c", text: "Table 240.6(A)", explanation: "Standard overcurrent device ratings." },
+      { id: "d", text: "Chapter 9 Table 1", explanation: "Conduit fill." },
     ],
   },
 ];
@@ -760,6 +882,45 @@ const MASTER_CONDUIT_QUESTIONS: Question[] = [
       { id: "d", text: "Because all raceways are always filled to 53%", explanation: "Incorrect." },
     ],
   },
+  {
+    id: "mcon-3",
+    topic: "conduit",
+    prompt: "Which NEC chapter is most often referenced for conduit and tubing fill tables on master-level exam questions?",
+    correctChoiceId: "c",
+    reference: "NEC Chapter 9",
+    choices: [
+      { id: "a", text: "Chapter 1", explanation: "General rules only." },
+      { id: "b", text: "Chapter 3", explanation: "Wiring methods, but fill tables are commonly in Chapter 9." },
+      { id: "c", text: "Chapter 9", explanation: "Correct." },
+      { id: "d", text: "Annex D only", explanation: "Annex D is helpful but not the primary chapter for fill tables." },
+    ],
+  },
+  {
+    id: "mcon-4",
+    topic: "conduit",
+    prompt: "Why do master-level conduit-fill questions often require careful table navigation?",
+    correctChoiceId: "a",
+    reference: "NEC Chapter 9 and Annex C",
+    choices: [
+      { id: "a", text: "Because they may require moving between fill percentages, conductor dimensions, and raceway dimensions instead of relying on a single table", explanation: "Correct." },
+      { id: "b", text: "Because all raceways use the same fill area", explanation: "Incorrect." },
+      { id: "c", text: "Because fill rules are based only on voltage", explanation: "Incorrect." },
+      { id: "d", text: "Because conductor count never affects conduit size", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mcon-5",
+    topic: "conduit",
+    prompt: "On tougher raceway questions, what is often being tested beyond simple memorization of percentages?",
+    correctChoiceId: "d",
+    reference: "NEC Chapter 9",
+    choices: [
+      { id: "a", text: "Only the name of the raceway", explanation: "Too narrow." },
+      { id: "b", text: "Only conductor color identification", explanation: "Incorrect." },
+      { id: "c", text: "Only overcurrent device sizing", explanation: "Incorrect." },
+      { id: "d", text: "The ability to navigate multiple tables and apply conductor count and raceway dimensions correctly", explanation: "Correct." },
+    ],
+  },
 ];
 
 const MASTER_VOLTAGE_DROP_QUESTIONS: Question[] = [
@@ -787,6 +948,45 @@ const MASTER_VOLTAGE_DROP_QUESTIONS: Question[] = [
       { id: "b", text: "2%", explanation: "Too low." },
       { id: "c", text: "2.5%", explanation: "Correct. 5.2 ÷ 208 = 0.025 = 2.5%." },
       { id: "d", text: "3.5%", explanation: "Too high." },
+    ],
+  },
+  {
+    id: "mvd-3",
+    topic: "voltage_drop",
+    prompt: "A 240V feeder has a 4.8V drop. What is the percentage voltage drop?",
+    correctChoiceId: "a",
+    reference: "Voltage drop formula",
+    choices: [
+      { id: "a", text: "2%", explanation: "Correct. 4.8 ÷ 240 = 0.02 = 2%." },
+      { id: "b", text: "2.5%", explanation: "Too high." },
+      { id: "c", text: "3%", explanation: "Too high." },
+      { id: "d", text: "4%", explanation: "Too high." },
+    ],
+  },
+  {
+    id: "mvd-4",
+    topic: "voltage_drop",
+    prompt: "A 600V circuit has a calculated drop of 18V. What is the percentage voltage drop?",
+    correctChoiceId: "c",
+    reference: "Voltage drop formula",
+    choices: [
+      { id: "a", text: "2%", explanation: "Too low." },
+      { id: "b", text: "2.5%", explanation: "Too low." },
+      { id: "c", text: "3%", explanation: "Correct. 18 ÷ 600 = 0.03 = 3%." },
+      { id: "d", text: "4%", explanation: "Too high." },
+    ],
+  },
+  {
+    id: "mvd-5",
+    topic: "voltage_drop",
+    prompt: "Why are voltage-drop questions often included in master-level prep even when they may be advisory in some contexts?",
+    correctChoiceId: "b",
+    reference: "Voltage drop design concept",
+    choices: [
+      { id: "a", text: "Because they replace ampacity rules", explanation: "Incorrect." },
+      { id: "b", text: "Because they test design judgment, arithmetic accuracy, and system-performance thinking", explanation: "Correct." },
+      { id: "c", text: "Because voltage drop is only relevant to motors", explanation: "Incorrect." },
+      { id: "d", text: "Because the NEC uses the same percentage for every application as a hard rule", explanation: "Incorrect." },
     ],
   },
 ];
@@ -870,6 +1070,71 @@ const MASTER_CALCULATION_QUESTIONS: Question[] = [
       { id: "d", text: "Because all service calculations are identical", explanation: "Incorrect." },
     ],
   },
+  {
+    id: "mcalc-7",
+    topic: "calculations",
+    prompt: "A continuous load is calculated at 240A. What minimum conductor ampacity is required before other corrections or adjustments?",
+    correctChoiceId: "b",
+    reference: "Continuous-load sizing concept",
+    choices: [
+      { id: "a", text: "240A", explanation: "Too low." },
+      { id: "b", text: "300A", explanation: "Correct. 240 × 125% = 300A." },
+      { id: "c", text: "280A", explanation: "Incorrect." },
+      { id: "d", text: "320A", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mcalc-8",
+    topic: "calculations",
+    prompt: "A 112.5 kVA single-phase transformer is rated at 240V on one side. What is the full-load current on that side?",
+    correctChoiceId: "d",
+    reference: "Transformer current formula",
+    choices: [
+      { id: "a", text: "375A", explanation: "Too low." },
+      { id: "b", text: "421.88A", explanation: "Too low." },
+      { id: "c", text: "450A", explanation: "Not the exact calculated value." },
+      { id: "d", text: "468.75A", explanation: "Correct. 112,500 ÷ 240 = 468.75A." },
+    ],
+  },
+  {
+    id: "mcalc-9",
+    topic: "calculations",
+    prompt: "A 480V 3-phase load draws 150A. Using VA = 1.732 × V × I, what is the approximate apparent power?",
+    correctChoiceId: "a",
+    reference: "Three-phase power formula",
+    choices: [
+      { id: "a", text: "124,704 VA", explanation: "Correct. 1.732 × 480 × 150 = 124,704 VA." },
+      { id: "b", text: "108,000 VA", explanation: "That ignores the 1.732 factor." },
+      { id: "c", text: "144,000 VA", explanation: "Incorrect." },
+      { id: "d", text: "83,136 VA", explanation: "That is the result for 100A, not 150A." },
+    ],
+  },
+  {
+    id: "mcalc-10",
+    topic: "calculations",
+    prompt: "Why do master-level service and feeder problems often feel more difficult than journeyman-level calculation problems?",
+    correctChoiceId: "c",
+    reference: "Master exam calculation structure",
+    choices: [
+      { id: "a", text: "Because they never use standard ratings", explanation: "Incorrect." },
+      { id: "b", text: "Because they avoid code references", explanation: "Incorrect." },
+      { id: "c", text: "Because they often combine demand factors, continuous loads, standard ratings, and multiple NEC article references into one problem", explanation: "Correct." },
+      { id: "d", text: "Because they are based only on memorization", explanation: "Incorrect." },
+    ],
+  },
+  {
+    id: "mcalc-11",
+    topic: "calculations",
+    prompt: "A feeder serves a noncontinuous load of 180A and a continuous load of 80A. What minimum ampacity is required before other corrections or adjustments?",
+    correctChoiceId: "b",
+    reference: "Continuous and noncontinuous load sizing concept",
+    choices: [
+      { id: "a", text: "260A", explanation: "That adds the loads without applying 125% to the continuous portion." },
+      { id: "b", text: "280A", explanation: "Correct. 180A + (80A × 125%) = 180A + 100A = 280A." },
+      { id: "c", text: "300A", explanation: "Too high." },
+      { id: "d", text: "225A", explanation: "Too low." },
+    ],
+  },
 ];
 
 const MASTER_QUESTIONS: Question[] = [
@@ -913,9 +1178,9 @@ function formatClock(totalSeconds: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
 
-export function Simulator() {
+export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
   const [topic, setTopic] = useState<TopicId>("mixed");
-  const [track, setTrack] = useState<TrackId>("journeyman");
+  const [track, setTrack] = useState<TrackId>(initialTrack);
   const [mode, setMode] = useState<"practice" | "exam" | "mock">("practice");
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -983,6 +1248,16 @@ export function Simulator() {
 
     return () => window.clearInterval(timer);
   }, [started, submitted, mode]);
+
+  useEffect(() => {
+    setTrack(initialTrack);
+    setStarted(false);
+    setSubmitted(false);
+    setIndex(0);
+    setAnswers({});
+    setSessionQuestions([]);
+    setSecondsLeft(mode === "mock" ? MOCK_SECONDS : EXAM_SECONDS);
+  }, [initialTrack, mode]);
 
   function reset(nextMode: typeof mode = mode) {
     setStarted(false);
