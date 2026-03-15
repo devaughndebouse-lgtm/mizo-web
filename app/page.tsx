@@ -38,6 +38,12 @@ const BENEFITS = [
   "Texas first, nationwide next",
 ];
 
+const TRUST_ITEMS = [
+  "NEC-style practice",
+  "Timed exam simulator",
+  "Built by a 24-year electrician",
+];
+
 const STEPS = [
   {
     number: "1",
@@ -233,6 +239,30 @@ function LandingInner() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 text-center lg:flex-row lg:items-center lg:justify-between lg:text-left">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+                Trusted Exam Prep
+              </div>
+              <h2 className="mt-2 text-2xl font-black text-neutral-950">
+                Built for electricians getting ready to pass
+              </h2>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-end">
+              {TRUST_ITEMS.map((item) => (
+                <div
+                  key={item}
+                  className="rounded-full border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-800"
+                >
+                  ✓ {item}
+                </div>
+              ))}
             </div>
           </div>
         </section>
