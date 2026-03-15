@@ -59,6 +59,34 @@ const STEPS = [
   },
 ];
 
+const LEADERBOARD = [
+  { name: "Marcus T.", score: "98%", badge: "Top Score" },
+  { name: "Jalen R.", score: "95%", badge: "Fastest Climber" },
+  { name: "Chris M.", score: "93%", badge: "Journeyman Track" },
+  { name: "Andre P.", score: "91%", badge: "Consistent" },
+  { name: "Luis G.", score: "89%", badge: "Rising" },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Derrick H.",
+    role: "Apprentice Electrician",
+    quote:
+      "Mizo Mastery helped me practice real exam-style questions instead of just reading the code book over and over.",
+  },
+  {
+    name: "Anthony W.",
+    role: "Journeyman Candidate",
+    quote:
+      "The step-by-step breakdowns made the calculations finally click for me. This feels built for electricians.",
+  },
+  {
+    name: "Carlos R.",
+    role: "Electrical Trainee",
+    quote:
+      "I like that I can jump in, answer questions fast, and actually feel like I’m getting better every day.",
+  },
+];
 function LandingInner() {
   const demoQuestion = useMemo(() => {
     const index = Math.floor(Math.random() * DEMO_QUESTIONS.length);
@@ -325,6 +353,82 @@ function LandingInner() {
               </p>
             </div>
           ))}
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+              Mizo Leaderboard
+            </div>
+            <h2 className="mt-2 text-3xl font-black text-neutral-950">
+              Top Scores This Week
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+              A little competition goes a long way. Show visitors that real
+              electricians are training, improving, and climbing the board.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {LEADERBOARD.map((entry, index) => (
+                <div
+                  key={entry.name}
+                  className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-yellow-400 text-sm font-black text-neutral-950">
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-neutral-950">
+                        {entry.name}
+                      </p>
+                      <p className="text-sm text-neutral-600">{entry.badge}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-lg font-black text-neutral-950">
+                      {entry.score}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+              Testimonials
+            </div>
+            <h2 className="mt-2 text-3xl font-black text-neutral-950">
+              Built for Electricians Who Want to Pass
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
+              Show visitors that Mizo is helping real people study smarter,
+              build confidence, and stay sharp for exam day.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {TESTIMONIALS.map((testimonial) => (
+                <div
+                  key={testimonial.name}
+                  className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
+                >
+                  <p className="text-sm leading-7 text-neutral-700 sm:text-base">
+                    “{testimonial.quote}”
+                  </p>
+                  <div className="mt-4">
+                    <p className="font-bold text-neutral-950">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-sm text-neutral-600">
+                      {testimonial.role}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="rounded-[28px] border border-yellow-200 bg-yellow-50 p-6 text-center shadow-sm sm:p-8">
