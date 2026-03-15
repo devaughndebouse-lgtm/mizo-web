@@ -87,6 +87,33 @@ const TESTIMONIALS = [
       "I like that I can jump in, answer questions fast, and actually feel like I’m getting better every day.",
   },
 ];
+
+const FAQS = [
+  {
+    question: "What do I get with Mizo Mastery?",
+    answer:
+      "You get NEC-style practice questions, timed exam simulations, and step-by-step explanations designed to help electricians prepare with confidence.",
+  },
+  {
+    question: "Is Mizo Mastery only for Texas?",
+    answer:
+      "Mizo Mastery is starting with Texas-focused exam prep, with plans to expand to more states and broader national exam coverage.",
+  },
+  {
+    question: "Can I cancel anytime?",
+    answer: "Yes. You can cancel your subscription anytime.",
+  },
+  {
+    question: "Who is this for?",
+    answer:
+      "Mizo Mastery is built for apprentices, journeyman candidates, and electricians who want better exam prep.",
+  },
+  {
+    question: "Does it include timed practice exams?",
+    answer:
+      "Yes. Mizo Mastery includes timed practice to help you build speed, confidence, and exam-day readiness.",
+  },
+];
 function LandingInner() {
   const demoQuestion = useMemo(() => {
     const index = Math.floor(Math.random() * DEMO_QUESTIONS.length);
@@ -456,6 +483,31 @@ function LandingInner() {
             >
               Login
             </Link>
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700">
+            FAQ
+          </div>
+          <h2 className="mt-2 text-3xl font-black text-neutral-950">
+            Frequently Asked Questions
+          </h2>
+
+          <div className="mt-6 space-y-4">
+            {FAQS.map((faq) => (
+              <div
+                key={faq.question}
+                className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
+              >
+                <h3 className="text-lg font-black text-neutral-950">
+                  {faq.question}
+                </h3>
+                <p className="mt-2 text-sm leading-7 text-neutral-700 sm:text-base">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 
