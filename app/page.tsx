@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { MouseEvent, Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -129,6 +129,27 @@ const PRICING_FEATURES = [
   "30-Day Confidence Guarantee",
   "Cancel anytime",
 ];
+
+declare global {
+  interface Window {
+    plausible?: (
+      eventName: string,
+      options?: { props?: Record<string, string> }
+    ) => void;
+    gtag?: (
+      command: "event",
+      eventName: string,
+      params?: Record<string, string>
+    ) => void;
+  }
+}
+
+function trackEvent(eventName: string, props?: Record<string, string>) {
+  if (typeof window === "undefined") return;
+
+  window.plausible?.(eventName, props ? { props } : undefined);
+  window.gtag?.("event", eventName, props);
+}
 function LandingInner() {
   const demoQuestion = useMemo(() => {
     const index = Math.floor(Math.random() * DEMO_QUESTIONS.length);
@@ -138,7 +159,41 @@ function LandingInner() {
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  async function startCheckout() {
+  function handleLoginClick(source: string) {
+    trackEvent("login_click", { source });
+  }
+
+  function handleFreeQuestionsClick() {
+    trackEvent("free_questions_click", { source: "homepage_free_questions" });
+  }
+
+  function handleAnswerCheck() {
+    trackEvent("check_answer_click", {
+      source: "homepage_demo_question",
+      hasSelection: selected !== null ? "yes" : "no",
+    });
+    setSubmitted(true);
+  }
+
+  function handleChoiceSelect(index: number) {
+    trackEvent("demo_choice_select", {
+      source: "homepage_demo_question",
+      choiceIndex: String(index),
+    });
+    setSelected(index);
+    setSubmitted(false);
+  }
+
+  function handleFooterNavClick(
+    event: MouseEvent<HTMLAnchorElement>,
+    destination: string
+  ) {
+    trackEvent("footer_nav_click", { destination });
+  }
+
+  async function startCheckout(source: string) {
+    trackEvent("start_training_click", { source });
+
     const res = await fetch("/api/create-checkout-session", {
       method: "POST",
       credentials: "include",
@@ -178,12 +233,16 @@ function LandingInner() {
               </p>
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button className="mizo-btn" onClick={startCheckout}>
+                <button
+                  className="mizo-btn"
+                  onClick={() => startCheckout("hero_primary")}
+                >
                   Start Training — $79/month
                 </button>
 
                 <Link
                   href="/login"
+                  onClick={() => handleLoginClick("hero_secondary")}
                   className="inline-flex items-center justify-center rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
                 >
                   Login
@@ -288,6 +347,7 @@ function LandingInner() {
 
           <Link
             href="/electrician-practice-questions"
+            onClick={handleFreeQuestionsClick}
             className="inline-block mt-5 rounded-xl bg-yellow-400 px-6 py-3 font-bold text-neutral-950 hover:bg-yellow-300"
           >
             Try Free Practice Questions
@@ -360,10 +420,7 @@ function LandingInner() {
             {demoQuestion.choices.map((choice, i) => (
               <button
                 key={i}
-                onClick={() => {
-                  setSelected(i);
-                  setSubmitted(false);
-                }}
+                onClick={() => handleChoiceSelect(i)}
                 className={`rounded-2xl border px-4 py-3 text-left font-semibold transition ${
                   selected === i
                     ? "border-yellow-400 bg-yellow-50 text-neutral-950"
@@ -379,14 +436,14 @@ function LandingInner() {
             <button
               className="mizo-btn"
               disabled={selected === null}
-              onClick={() => setSubmitted(true)}
+              onClick={handleAnswerCheck}
             >
               Check Answer
             </button>
 
             <button
               className="inline-flex items-center justify-center rounded-xl border border-neutral-300 bg-white px-5 py-3 font-bold text-neutral-900 transition hover:bg-neutral-50"
-              onClick={startCheckout}
+              onClick={() => startCheckout("demo_question_secondary")}
             >
               Unlock Full Simulator
             </button>
@@ -534,7 +591,10 @@ function LandingInner() {
               ))}
             </div>
 
-            <button className="mizo-btn mt-6" onClick={startCheckout}>
+            <button
+              className="mizo-btn mt-6"
+              onClick={() => startCheckout("pricing_primary")}
+            >
               Start Training Now
             </button>
           </div>
@@ -555,12 +615,16 @@ function LandingInner() {
           </p>
 
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
-            <button className="mizo-btn" onClick={startCheckout}>
+            <button
+              className="mizo-btn"
+              onClick={() => startCheckout("guarantee_primary")}
+            >
               Start Training
             </button>
 
             <Link
               href="/login"
+              onClick={() => handleLoginClick("guarantee_secondary")}
               className="inline-flex items-center justify-center rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
             >
               Login
@@ -608,16 +672,32 @@ function LandingInner() {
           </p>
 
           <div className="mt-5 flex flex-col items-center justify-center gap-3 text-sm font-bold text-neutral-700 sm:flex-row sm:flex-wrap sm:gap-5">
-            <Link href="/terms" className="hover:text-neutral-950">
+            <Link
+              href="/terms"
+              onClick={(event) => handleFooterNavClick(event, "terms")}
+              className="hover:text-neutral-950"
+            >
               Terms
             </Link>
-            <Link href="/privacy" className="hover:text-neutral-950">
+            <Link
+              href="/privacy"
+              onClick={(event) => handleFooterNavClick(event, "privacy")}
+              className="hover:text-neutral-950"
+            >
               Privacy
             </Link>
-            <Link href="/refund" className="hover:text-neutral-950">
+            <Link
+              href="/refund"
+              onClick={(event) => handleFooterNavClick(event, "refund")}
+              className="hover:text-neutral-950"
+            >
               Refund
             </Link>
-            <Link href="/contact" className="hover:text-neutral-950">
+            <Link
+              href="/contact"
+              onClick={(event) => handleFooterNavClick(event, "contact")}
+              className="hover:text-neutral-950"
+            >
               Contact
             </Link>
           </div>
