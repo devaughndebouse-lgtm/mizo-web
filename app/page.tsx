@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEvent, Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -35,7 +35,7 @@ const BENEFITS = [
   "Timed exam simulator",
   "Clear calculation walkthroughs",
   "Built by an experienced electrician",
-  "Texas first, nationwide next",
+  "Built for electricians nationwide",
 ];
 
 const TRUST_ITEMS = [
@@ -101,9 +101,9 @@ const FAQS = [
       "You get NEC-style practice questions, timed exam simulations, and step-by-step explanations designed to help electricians prepare with confidence.",
   },
   {
-    question: "Is Mizo Mastery only for Texas?",
+    question: "Is Mizo Mastery for electricians nationwide?",
     answer:
-      "Mizo Mastery is starting with Texas-focused exam prep, with plans to expand to more states and broader national exam coverage.",
+      "Yes. Mizo Mastery is built for electricians nationwide, with exam-style practice designed to help users strengthen code navigation, calculations, and test readiness across the country.",
   },
   {
     question: "Can I cancel anytime?",
@@ -150,6 +150,7 @@ function trackEvent(eventName: string, props?: Record<string, string>) {
   window.plausible?.(eventName, props ? { props } : undefined);
   window.gtag?.("event", eventName, props);
 }
+
 function LandingInner() {
   const demoQuestion = useMemo(() => {
     const index = Math.floor(Math.random() * DEMO_QUESTIONS.length);
@@ -184,10 +185,7 @@ function LandingInner() {
     setSubmitted(false);
   }
 
-  function handleFooterNavClick(
-    event: MouseEvent<HTMLAnchorElement>,
-    destination: string
-  ) {
+  function handleFooterNavClick(destination: string) {
     trackEvent("footer_nav_click", { destination });
   }
 
@@ -225,7 +223,8 @@ function LandingInner() {
 
               <p className="mt-5 max-w-2xl text-base leading-7 text-neutral-700 sm:text-lg sm:leading-8">
                 Real NEC-style exam simulations, timed practice tests, and clear
-                step-by-step explanations built for working electricians.
+                step-by-step explanations built for working electricians across
+                the country.
               </p>
 
               <p className="mt-4 text-sm font-semibold text-yellow-700 sm:text-base">
@@ -563,7 +562,9 @@ function LandingInner() {
               Start Training with Mizo Mastery
             </h2>
             <p className="mt-3 text-sm leading-7 text-neutral-700 sm:text-base">
-              Get full access to NEC-style practice, timed simulations, and step-by-step explanations built for working electricians.
+              Get full access to NEC-style practice, timed simulations, and
+              step-by-step explanations built for working electricians
+              nationwide.
             </p>
           </div>
 
@@ -674,28 +675,28 @@ function LandingInner() {
           <div className="mt-5 flex flex-col items-center justify-center gap-3 text-sm font-bold text-neutral-700 sm:flex-row sm:flex-wrap sm:gap-5">
             <Link
               href="/terms"
-              onClick={(event) => handleFooterNavClick(event, "terms")}
+              onClick={() => handleFooterNavClick("terms")}
               className="hover:text-neutral-950"
             >
               Terms
             </Link>
             <Link
               href="/privacy"
-              onClick={(event) => handleFooterNavClick(event, "privacy")}
+              onClick={() => handleFooterNavClick("privacy")}
               className="hover:text-neutral-950"
             >
               Privacy
             </Link>
             <Link
               href="/refund"
-              onClick={(event) => handleFooterNavClick(event, "refund")}
+              onClick={() => handleFooterNavClick("refund")}
               className="hover:text-neutral-950"
             >
               Refund
             </Link>
             <Link
               href="/contact"
-              onClick={(event) => handleFooterNavClick(event, "contact")}
+              onClick={() => handleFooterNavClick("contact")}
               className="hover:text-neutral-950"
             >
               Contact
