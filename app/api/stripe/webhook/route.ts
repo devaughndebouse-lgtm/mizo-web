@@ -13,6 +13,27 @@ function getStripe() {
   return new Stripe(secret);
 }
 
+function getJourneymanPriceId() {
+  return (
+    process.env.STRIPE_JOURNEYMAN_PRICE_ID ??
+    process.env.NEXT_PUBLIC_STRIPE_JOURNEYMAN_PRICE_ID
+  )?.trim() ?? null;
+}
+
+function getMasterPriceId() {
+  return (
+    process.env.STRIPE_MASTER_PRICE_ID ??
+    process.env.NEXT_PUBLIC_STRIPE_MASTER_PRICE_ID
+  )?.trim() ?? null;
+}
+
+function getTrackFromPriceId(priceId: string | null) {
+  if (!priceId) return null;
+  if (priceId === getJourneymanPriceId()) return "journeyman";
+  if (priceId === getMasterPriceId()) return "master";
+  return null;
+}
+
 function getAppUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "http://localhost:3000").replace(/\/$/, "");
 }
@@ -150,6 +171,80 @@ function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   return null;
 }
 
+async function getCheckoutSessionTrack(
+  stripe: Stripe,
+  sessionId: string
+): Promise<"journeyman" | "master" | null> {
+  const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+    limit: 10,
+  });
+
+  for (const item of lineItems.data) {
+    const priceId =
+      typeof item.price === "string" ? item.price : item.price?.id ?? null;
+    const track = getTrackFromPriceId(priceId);
+    if (track) return track;
+  }
+
+  return null;
+}
+
+async function getSubscriptionTrack(
+  stripe: Stripe,
+  subscriptionId: string
+): Promise<"journeyman" | "master" | null> {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ["items.data.price"],
+  });
+
+  for (const item of subscription.items.data) {
+    const priceId =
+      typeof item.price === "string" ? item.price : item.price?.id ?? null;
+    const track = getTrackFromPriceId(priceId);
+    if (track) return track;
+  }
+
+  return null;
+}
+
+async function setSupabaseUserTrackByEmail(args: {
+  email: string;
+  track: "journeyman" | "master" | null;
+}) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !args.track) return;
+
+  const { data: list, error: listErr } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+
+  if (listErr) {
+    console.error("Failed to list Supabase users for track update:", listErr.message);
+    return;
+  }
+
+  const existing = list.users.find(
+    (u) => (u.email ?? "").toLowerCase() === args.email.toLowerCase()
+  );
+
+  if (!existing) return;
+
+  const { error: updateErr } = await supabase.auth.admin.updateUserById(
+    existing.id,
+    {
+      user_metadata: {
+        ...(existing.user_metadata ?? {}),
+        last_purchased_track: args.track,
+      },
+    }
+  );
+
+  if (updateErr) {
+    console.error("Failed to update Supabase user track:", updateErr.message);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const stripe = getStripe();
@@ -198,6 +293,7 @@ export async function POST(req: NextRequest) {
           : session.subscription?.id ?? null;
 
       if (email) {
+        const sessionTrack = await getCheckoutSessionTrack(stripe, session.id);
         const ensured = await ensureSupabaseUserAndInvite(email);
 
         await upsertMizoUser({
@@ -212,6 +308,14 @@ export async function POST(req: NextRequest) {
               : null,
         });
 
+        await setSupabaseUserTrackByEmail({
+          email,
+          track: sessionTrack,
+        });
+
+        if (sessionTrack) {
+          console.log(`Checkout completed for ${email} on ${sessionTrack} track`);
+        }
         if (ensured.mode === "error") {
           console.error("Supabase provisioning error:", ensured.error);
         }
@@ -237,14 +341,23 @@ export async function POST(req: NextRequest) {
           ? subscription.customer
           : subscription.customer?.id ?? null;
 
+      const stripeSubscriptionId = subscription.id;
+      const subscriptionTrack = await getSubscriptionTrack(stripe, subscription.id);
+
       if (stripeCustomerId) {
         await updateAccessByCustomerId({
           stripeCustomerId,
-          stripeSubscriptionId: subscription.id,
+          stripeSubscriptionId,
           subscriptionStatus: subscription.status,
           accessActive:
             subscription.status === "active" || subscription.status === "trialing",
         });
+
+        if (subscriptionTrack) {
+          console.log(
+            `Subscription updated for ${stripeCustomerId} on ${subscriptionTrack} track`
+          );
+        }
       }
     }
 
@@ -255,13 +368,22 @@ export async function POST(req: NextRequest) {
           ? subscription.customer
           : subscription.customer?.id ?? null;
 
+      const stripeSubscriptionId = subscription.id;
+      const subscriptionTrack = await getSubscriptionTrack(stripe, subscription.id);
+
       if (stripeCustomerId) {
         await updateAccessByCustomerId({
           stripeCustomerId,
-          stripeSubscriptionId: subscription.id,
+          stripeSubscriptionId,
           subscriptionStatus: subscription.status,
           accessActive: false,
         });
+
+        if (subscriptionTrack) {
+          console.log(
+            `Subscription deleted for ${stripeCustomerId} on ${subscriptionTrack} track`
+          );
+        }
       }
     }
 
