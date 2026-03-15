@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -80,7 +80,7 @@ const TOPIC_OPTIONS: TopicOption[] = [
   },
 ];
 
-export default function AppPage() {
+function AppPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useMemo(() => {
@@ -291,5 +291,13 @@ export default function AppPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function AppPage() {
+  return (
+    <Suspense fallback={null}>
+      <AppPageInner />
+    </Suspense>
   );
 }
