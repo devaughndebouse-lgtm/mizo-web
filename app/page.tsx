@@ -83,7 +83,7 @@ const EXAM_TRACKS = [
     title: "Journeyman Electrician Simulator",
     description:
       "Practice NEC-style questions, timed simulations, and calculation walkthroughs built to help electricians prepare for the Journeyman exam.",
-    price: "$49/month",
+    price: "$9.99/month",
     cta: "Start Journeyman Training",
     source: "journeyman_track",
     badge: "Journeyman",
@@ -92,7 +92,7 @@ const EXAM_TRACKS = [
     title: "Master Electrician Simulator",
     description:
       "Train with a separate paid simulator built around a master-level question bank covering advanced code navigation, service and feeder calculations, grounding and bonding, and more complex commercial and industrial exam-style scenarios.",
-    price: "$79/month",
+    price: "$19.99/month",
     cta: "Start Master Training",
     source: "master_track",
     badge: "Master",
@@ -323,7 +323,7 @@ function LandingInner() {
                   className="mizo-btn"
                   onClick={() => startCheckout("hero_primary")}
                 >
-                  Start Training — $49/month
+                  Start Training — From $9.99/month
                 </button>
 
                 <Link
@@ -733,7 +733,7 @@ function LandingInner() {
                 Journeyman Simulator
               </div>
               <div className="mt-3 text-5xl font-black text-neutral-950">
-                $49
+                $9.99
                 <span className="text-lg font-semibold text-neutral-700">
                   /month
                 </span>
@@ -767,7 +767,7 @@ function LandingInner() {
                 Master Simulator
               </div>
               <div className="mt-3 text-5xl font-black text-neutral-950">
-                $79
+                $19.99
                 <span className="text-lg font-semibold text-neutral-700">
                   /month
                 </span>
