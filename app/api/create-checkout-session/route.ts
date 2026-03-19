@@ -26,9 +26,7 @@ function getPriceIdForSource(source?: CheckoutSource) {
     process.env.NEXT_PUBLIC_STRIPE_MASTER_PRICE_ID
   )?.trim();
 
-  const defaultPriceId = (
-    process.env.STRIPE_PRICE_ID ?? process.env.NEXT_PUBLIC_STRIPE_PRICE_ID
-  )?.trim();
+  const defaultPriceId = journeymanPriceId ?? masterPriceId;
 
   if (
     source === "hero_primary" ||
@@ -42,7 +40,7 @@ function getPriceIdForSource(source?: CheckoutSource) {
     return masterPriceId ?? defaultPriceId;
   }
 
-  return defaultPriceId ?? journeymanPriceId ?? masterPriceId;
+  return journeymanPriceId ?? masterPriceId;
 }
 
 export async function POST(req: Request) {
