@@ -62,7 +62,7 @@ function LoginInner() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${authBaseUrl}/app`,
+          emailRedirectTo: `${authBaseUrl}/login?next=/app`,
         },
       });
 
