@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParams = useSearchParams();
 
   const authBaseUrl =
     typeof window !== "undefined"
@@ -31,11 +32,28 @@ function LoginInner() {
   useEffect(() => {
     if (!supabase) return;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const finishLogin = async () => {
+      const code = searchParams.get("code");
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          setError(error.message ?? "Unable to complete login.");
+          return;
+        }
+
+        router.replace("/app");
+        return;
+      }
+
+      const { data } = await supabase.auth.getSession();
       if (data.session) {
         router.replace("/app");
       }
-    });
+    };
+
+    void finishLogin();
 
     const {
       data: { subscription },
@@ -48,7 +66,7 @@ function LoginInner() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, supabase]);
+  }, [router, searchParams, supabase]);
 
   async function sendMagicLink() {
     setLoading(true);
@@ -62,7 +80,7 @@ function LoginInner() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${authBaseUrl}/login?next=/app`,
+          emailRedirectTo: `${authBaseUrl}/login`,
         },
       });
 
