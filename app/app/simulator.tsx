@@ -615,6 +615,220 @@ const CALCULATION_QUESTIONS: Question[] = [
   },
 ];
 
+const standardOcpdRatings = [
+  15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 125, 150, 175,
+  200, 225, 250, 300, 350, 400, 450, 500, 600, 700, 800,
+] as const;
+
+function roundTo(value: number, places = 2) {
+  const factor = 10 ** places;
+  return Math.round(value * factor) / factor;
+}
+
+function formatNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : String(roundTo(value));
+}
+
+function nextStandardRating(amps: number) {
+  return standardOcpdRatings.find((rating) => rating >= amps) ?? standardOcpdRatings[standardOcpdRatings.length - 1];
+}
+
+const journeymanLookupItems = [
+  ["definitions", "Which NEC article contains definitions used throughout the Code?", "Article 100", "Article 90", "Article 110", "Article 250", "NEC Article 100"],
+  ["definitions", "Which NEC article covers general requirements for electrical installations?", "Article 110", "Article 90", "Article 210", "Article 300", "NEC Article 110"],
+  ["definitions", "Which NEC article covers branch circuits?", "Article 210", "Article 215", "Article 220", "Article 230", "NEC Article 210"],
+  ["definitions", "Which NEC article covers feeders?", "Article 215", "Article 210", "Article 230", "Article 250", "NEC Article 215"],
+  ["definitions", "Which NEC article covers branch-circuit, feeder, and service load calculations?", "Article 220", "Article 200", "Article 240", "Article 300", "NEC Article 220"],
+  ["grounding", "Which NEC article is the main grounding and bonding article?", "Article 250", "Article 210", "Article 300", "Article 430", "NEC Article 250"],
+  ["grounding", "Which NEC table is commonly used to size equipment grounding conductors by overcurrent device rating?", "Table 250.122", "Table 310.16", "Table 430.250", "Table 300.5", "NEC Table 250.122"],
+  ["motors", "Which NEC article covers motors, motor circuits, and controllers?", "Article 430", "Article 210", "Article 250", "Article 690", "NEC Article 430"],
+  ["motors", "Which NEC table is commonly used for full-load current values of single-phase AC motors?", "Table 430.248", "Table 310.16", "Table 240.6(A)", "Chapter 9 Table 1", "NEC Table 430.248"],
+  ["motors", "Which NEC table is commonly used for full-load current values of three-phase AC motors?", "Table 430.250", "Table 310.16", "Table 250.122", "Table 300.5", "NEC Table 430.250"],
+  ["conduit", "Which NEC chapter contains raceway fill tables and notes?", "Chapter 9", "Chapter 1", "Chapter 5", "Chapter 8", "NEC Chapter 9"],
+  ["conduit", "For more than two conductors in a raceway, what fill percentage is generally used?", "40%", "31%", "53%", "60%", "NEC Chapter 9 Table 1"],
+  ["voltage_drop", "What formula is used to find voltage-drop percentage?", "Voltage drop ÷ circuit voltage × 100", "Circuit voltage ÷ voltage drop", "Amps ÷ volts × 100", "Watts ÷ amps", "Voltage drop formula"],
+  ["calculations", "What formula gives single-phase apparent power in volt-amperes?", "Volts × amps", "Volts ÷ amps", "Amps ÷ volts", "Volts × ohms", "VA = V × I"],
+  ["calculations", "What multiplier is commonly applied to continuous loads for conductor sizing?", "125%", "80%", "100%", "150%", "Continuous-load sizing"],
+] as const;
+
+const JOURNEYMAN_LOOKUP_QUESTIONS: Question[] = Array.from({ length: 60 }, (_, index) => {
+  const item = journeymanLookupItems[index % journeymanLookupItems.length];
+  const [topic, prompt, correct, wrong1, wrong2, wrong3, reference] = item;
+
+  return {
+    id: `j-look-${index + 1}`,
+    topic,
+    prompt,
+    reference,
+    correctChoiceId: "a",
+    choices: [
+      { id: "a", text: correct, explanation: `Correct. ${reference} is the right reference for this question.` },
+      { id: "b", text: wrong1, explanation: "That reference does not best match this question." },
+      { id: "c", text: wrong2, explanation: "That reference covers a different topic." },
+      { id: "d", text: wrong3, explanation: "That is not the best answer here." },
+    ],
+  };
+});
+
+const journeymanOhmsLawPairs = [
+  [120, 6], [120, 8], [120, 12], [120, 16], [120, 20], [120, 24],
+  [208, 10], [208, 12], [208, 15], [208, 18], [208, 20], [208, 24],
+  [240, 8], [240, 10], [240, 12], [240, 15], [240, 18], [240, 20],
+  [277, 5], [277, 8], [277, 10], [277, 12], [277, 15], [277, 18],
+  [480, 5], [480, 8], [480, 10], [480, 12], [480, 15], [480, 20],
+] as const;
+
+const JOURNEYMAN_OHMS_LAW_QUESTIONS: Question[] = Array.from({ length: 60 }, (_, index) => {
+  const [voltage, amps] = journeymanOhmsLawPairs[index % journeymanOhmsLawPairs.length];
+  const correct = voltage * amps;
+
+  return {
+    id: `j-ohms-${index + 1}`,
+    topic: "calculations",
+    prompt: `A ${voltage}V circuit carries ${amps}A. What is the apparent power?`,
+    reference: "VA = volts × amperes",
+    correctChoiceId: "c",
+    choices: [
+      { id: "a", text: `${correct / 2} VA`, explanation: "That is half of the calculated value." },
+      { id: "b", text: `${voltage + amps} VA`, explanation: "That adds voltage and current instead of multiplying." },
+      { id: "c", text: `${correct} VA`, explanation: `Correct. ${voltage} × ${amps} = ${correct} VA.` },
+      { id: "d", text: `${correct * 2} VA`, explanation: "That is double the calculated value." },
+    ],
+  };
+});
+
+const continuousLoads = [
+  12, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 40, 42, 44, 48, 50, 52,
+  56, 60, 64, 68, 72, 75, 80,
+] as const;
+
+const JOURNEYMAN_CONTINUOUS_LOAD_QUESTIONS: Question[] = Array.from({ length: 50 }, (_, index) => {
+  const load = continuousLoads[index % continuousLoads.length];
+  const correct = roundTo(load * 1.25, 2);
+
+  return {
+    id: `j-cont-${index + 1}`,
+    topic: "calculations",
+    prompt: `A branch circuit has a continuous load of ${load}A. What minimum ampacity is required before other corrections or adjustments?`,
+    reference: "Continuous-load sizing concept",
+    correctChoiceId: "b",
+    choices: [
+      { id: "a", text: `${load}A`, explanation: "Continuous loads are not sized at only 100% in this question." },
+      { id: "b", text: `${formatNumber(correct)}A`, explanation: `Correct. ${load}A × 125% = ${formatNumber(correct)}A.` },
+      { id: "c", text: `${formatNumber(roundTo(load * 1.1, 2))}A`, explanation: "That uses too small a multiplier." },
+      { id: "d", text: `${formatNumber(roundTo(load * 1.5, 2))}A`, explanation: "That is above the required 125% value." },
+    ],
+  };
+});
+
+const journeymanVoltageDropPairs = [
+  [120, 2.4], [120, 3.6], [120, 4.8], [208, 4.16], [208, 5.2],
+  [208, 6.24], [240, 4.8], [240, 6], [240, 7.2], [277, 5.54],
+  [277, 6.93], [277, 8.31], [480, 9.6], [480, 12], [480, 14.4],
+  [600, 12], [600, 15], [600, 18], [120, 6], [240, 9.6],
+] as const;
+
+const JOURNEYMAN_VOLTAGE_DROP_PRACTICE: Question[] = Array.from({ length: 50 }, (_, index) => {
+  const [voltage, drop] = journeymanVoltageDropPairs[index % journeymanVoltageDropPairs.length];
+  const correct = roundTo((drop / voltage) * 100, 2);
+
+  return {
+    id: `j-vdrop-${index + 1}`,
+    topic: "voltage_drop",
+    prompt: `A ${voltage}V circuit has a ${drop}V drop. What is the voltage-drop percentage?`,
+    reference: "Voltage drop ÷ circuit voltage × 100",
+    correctChoiceId: "d",
+    choices: [
+      { id: "a", text: `${formatNumber(roundTo(correct / 2, 2))}%`, explanation: "That is too low." },
+      { id: "b", text: `${formatNumber(roundTo(correct + 1, 2))}%`, explanation: "That is too high." },
+      { id: "c", text: `${formatNumber(roundTo(correct * 2, 2))}%`, explanation: "That doubles the correct percentage." },
+      { id: "d", text: `${formatNumber(correct)}%`, explanation: `Correct. ${drop} ÷ ${voltage} × 100 = ${formatNumber(correct)}%.` },
+    ],
+  };
+});
+
+const journeymanMotorFlaValues = [
+  6, 7.6, 9.6, 11, 14, 17, 21, 22, 27, 28, 34, 40, 42, 52, 65, 77, 96, 124,
+  156, 180, 240, 302, 361, 414, 477,
+] as const;
+
+const JOURNEYMAN_MOTOR_CONDUCTOR_QUESTIONS: Question[] = Array.from({ length: 50 }, (_, index) => {
+  const fla = journeymanMotorFlaValues[index % journeymanMotorFlaValues.length];
+  const correct = roundTo(fla * 1.25, 2);
+
+  return {
+    id: `j-motor-cond-${index + 1}`,
+    topic: "motors",
+    prompt: `For this practice question, a single motor has an FLC of ${fla}A. What conductor ampacity is required at 125% of motor FLC?`,
+    reference: "NEC 430.22 motor conductor concept",
+    correctChoiceId: "a",
+    choices: [
+      { id: "a", text: `${formatNumber(correct)}A`, explanation: `Correct. ${fla}A × 125% = ${formatNumber(correct)}A.` },
+      { id: "b", text: `${formatNumber(fla)}A`, explanation: "That uses only 100% of motor FLC." },
+      { id: "c", text: `${formatNumber(roundTo(fla * 1.15, 2))}A`, explanation: "That uses too small a multiplier." },
+      { id: "d", text: `${formatNumber(roundTo(fla * 1.5, 2))}A`, explanation: "That is above the 125% value asked for here." },
+    ],
+  };
+});
+
+const journeymanBoxFillPairs = [
+  [1, 4], [1, 5], [1, 6], [2, 4], [2, 5], [2, 6], [2, 7], [3, 5],
+  [3, 6], [3, 7], [3, 8], [4, 6], [4, 7], [4, 8], [5, 8], [5, 9],
+  [6, 8], [6, 10], [7, 10], [8, 12],
+] as const;
+
+const JOURNEYMAN_BOX_FILL_PRACTICE: Question[] = Array.from({ length: 40 }, (_, index) => {
+  const [deviceYokes, conductors] = journeymanBoxFillPairs[index % journeymanBoxFillPairs.length];
+  const correct = deviceYokes * 2 + conductors;
+
+  return {
+    id: `j-box-${index + 1}`,
+    topic: "calculations",
+    prompt: `A box has ${deviceYokes} device yoke(s) and ${conductors} insulated conductors. Ignoring fittings and grounds for this practice question, how many conductor-volume allowances are required?`,
+    reference: "NEC 314.16 box-fill concept",
+    correctChoiceId: "b",
+    choices: [
+      { id: "a", text: `${deviceYokes + conductors}`, explanation: "That counts each device yoke as one allowance instead of two." },
+      { id: "b", text: `${correct}`, explanation: `Correct. ${deviceYokes} yoke(s) × 2 plus ${conductors} conductors = ${correct}.` },
+      { id: "c", text: `${correct + 2}`, explanation: "That adds extra allowances not stated in the question." },
+      { id: "d", text: `${conductors * 2}`, explanation: "That doubles only the conductor count." },
+    ],
+  };
+});
+
+const journeymanConduitScenarios = [
+  [1, "53%"], [2, "31%"], [3, "40%"], [4, "40%"], [5, "40%"], [6, "40%"],
+  [7, "40%"], [8, "40%"], [9, "40%"], [10, "40%"],
+] as const;
+
+const JOURNEYMAN_CONDUIT_FILL_PRACTICE: Question[] = Array.from({ length: 40 }, (_, index) => {
+  const [count, correct] = journeymanConduitScenarios[index % journeymanConduitScenarios.length];
+
+  return {
+    id: `j-conduit-fill-${index + 1}`,
+    topic: "conduit",
+    prompt: `Using NEC Chapter 9 Table 1 concepts, what maximum raceway fill percentage generally applies when a raceway contains ${count} conductor(s)?`,
+    reference: "NEC Chapter 9 Table 1",
+    correctChoiceId: "c",
+    choices: [
+      { id: "a", text: "25%", explanation: "That is not the general Chapter 9 Table 1 value for this conductor count." },
+      { id: "b", text: "60%", explanation: "That is not the general Chapter 9 Table 1 fill limit." },
+      { id: "c", text: correct, explanation: `Correct for this conductor count under the Chapter 9 Table 1 concept.` },
+      { id: "d", text: "75%", explanation: "That is too high for the general raceway fill limit." },
+    ],
+  };
+});
+
+const JOURNEYMAN_EXPANDED_QUESTIONS: Question[] = [
+  ...JOURNEYMAN_LOOKUP_QUESTIONS,
+  ...JOURNEYMAN_OHMS_LAW_QUESTIONS,
+  ...JOURNEYMAN_CONTINUOUS_LOAD_QUESTIONS,
+  ...JOURNEYMAN_VOLTAGE_DROP_PRACTICE,
+  ...JOURNEYMAN_MOTOR_CONDUCTOR_QUESTIONS,
+  ...JOURNEYMAN_BOX_FILL_PRACTICE,
+  ...JOURNEYMAN_CONDUIT_FILL_PRACTICE,
+];
+
 const JOURNEYMAN_QUESTIONS: Question[] = [
   ...DEFINITION_QUESTIONS,
   ...GROUNDING_QUESTIONS,
@@ -623,6 +837,7 @@ const JOURNEYMAN_QUESTIONS: Question[] = [
   ...VOLTAGE_DROP_QUESTIONS,
   ...CALCULATION_QUESTIONS,
   ...EXTENDED_CALCULATION_QUESTIONS,
+  ...JOURNEYMAN_EXPANDED_QUESTIONS,
 ].slice(0, 500);
 
 const MASTER_DEFINITION_QUESTIONS: Question[] = [
@@ -1137,6 +1352,203 @@ const MASTER_CALCULATION_QUESTIONS: Question[] = [
   },
 ];
 
+const masterLookupItems = [
+  ["definitions", "Which NEC article is the primary starting point for service conductors and service equipment?", "Article 230", "Article 210", "Article 250", "Article 430", "NEC Article 230"],
+  ["definitions", "Which NEC article is central to branch-circuit, feeder, and service load calculations?", "Article 220", "Article 215", "Article 240", "Article 300", "NEC Article 220"],
+  ["definitions", "Which NEC article covers overcurrent protection requirements?", "Article 240", "Article 210", "Article 250", "Article 680", "NEC Article 240"],
+  ["grounding", "Which NEC section is commonly associated with grounding electrode conductor sizing?", "250.66", "250.122", "210.19", "430.52", "NEC 250.66"],
+  ["grounding", "Which NEC section is commonly associated with equipment grounding conductor sizing?", "250.122", "250.66", "215.2", "220.42", "NEC 250.122"],
+  ["grounding", "Which NEC section covers grounding separately derived systems?", "250.30", "250.24", "300.5", "430.32", "NEC 250.30"],
+  ["motors", "Which NEC section is commonly associated with sizing motor branch-circuit conductors?", "430.22", "430.52", "250.122", "240.6(A)", "NEC 430.22"],
+  ["motors", "Which NEC section is commonly associated with motor branch-circuit short-circuit and ground-fault protection?", "430.52", "430.22", "310.16", "220.55", "NEC 430.52"],
+  ["motors", "Which table is commonly used for three-phase AC motor full-load current?", "Table 430.250", "Table 310.16", "Table 240.6(A)", "Table 250.122", "NEC Table 430.250"],
+  ["conduit", "Which NEC chapter contains raceway fill tables?", "Chapter 9", "Chapter 2", "Chapter 5", "Chapter 8", "NEC Chapter 9"],
+  ["conduit", "Which NEC table gives the general raceway fill percentages?", "Chapter 9 Table 1", "Table 250.122", "Table 310.16", "Table 430.250", "NEC Chapter 9 Table 1"],
+  ["voltage_drop", "Which calculation best describes voltage-drop percentage?", "Voltage drop ÷ system voltage × 100", "System voltage ÷ voltage drop", "Amps × ohms only", "Watts ÷ volts", "Voltage drop design calculation"],
+  ["calculations", "Which table lists standard ampere ratings for fuses and inverse time circuit breakers?", "240.6(A)", "310.16", "250.66", "430.250", "NEC 240.6(A)"],
+  ["calculations", "Which formula is commonly used for 3-phase apparent power?", "1.732 × volts × amps", "Volts × amps only", "Volts ÷ amps", "Amps ÷ 1.732", "Three-phase VA formula"],
+] as const;
+
+const MASTER_LOOKUP_QUESTIONS: Question[] = Array.from({ length: 70 }, (_, index) => {
+  const [topic, prompt, correct, wrong1, wrong2, wrong3, reference] = masterLookupItems[index % masterLookupItems.length];
+
+  return {
+    id: `m-look-${index + 1}`,
+    topic,
+    prompt,
+    reference,
+    correctChoiceId: "d",
+    choices: [
+      { id: "a", text: wrong1, explanation: "That reference points to a different rule family." },
+      { id: "b", text: wrong2, explanation: "That is not the best reference for this prompt." },
+      { id: "c", text: wrong3, explanation: "That topic is not the main rule tested here." },
+      { id: "d", text: correct, explanation: `Correct. ${reference} is the best match.` },
+    ],
+  };
+});
+
+const masterThreePhasePairs = [
+  [208, 100], [208, 125], [208, 150], [208, 175], [208, 200],
+  [240, 100], [240, 125], [240, 150], [240, 175], [240, 200],
+  [480, 100], [480, 125], [480, 150], [480, 175], [480, 200],
+  [480, 225], [480, 250], [600, 100], [600, 150], [600, 200],
+] as const;
+
+const MASTER_THREE_PHASE_POWER_QUESTIONS: Question[] = Array.from({ length: 80 }, (_, index) => {
+  const [voltage, amps] = masterThreePhasePairs[index % masterThreePhasePairs.length];
+  const correct = Math.round(1.732 * voltage * amps);
+
+  return {
+    id: `m-3p-va-${index + 1}`,
+    topic: "calculations",
+    prompt: `A ${voltage}V, 3-phase load draws ${amps}A. Using VA = 1.732 × V × I, what is the approximate apparent power?`,
+    reference: "Three-phase apparent power formula",
+    correctChoiceId: "b",
+    choices: [
+      { id: "a", text: `${voltage * amps} VA`, explanation: "That ignores the 1.732 three-phase factor." },
+      { id: "b", text: `${correct} VA`, explanation: `Correct. 1.732 × ${voltage} × ${amps} = approximately ${correct} VA.` },
+      { id: "c", text: `${Math.round(correct / 1.25)} VA`, explanation: "That is below the calculated three-phase VA." },
+      { id: "d", text: `${Math.round(correct * 1.25)} VA`, explanation: "That is above the apparent power asked for here." },
+    ],
+  };
+});
+
+const masterSingleTransformerPairs = [
+  [15, 120], [15, 240], [25, 120], [25, 240], [37.5, 240], [37.5, 480],
+  [45, 240], [45, 480], [50, 240], [50, 480], [75, 240], [75, 480],
+  [100, 240], [100, 480], [112.5, 240], [112.5, 480], [150, 240],
+  [150, 480], [225, 480], [300, 480],
+] as const;
+
+const MASTER_SINGLE_PHASE_TRANSFORMER_QUESTIONS: Question[] = Array.from({ length: 60 }, (_, index) => {
+  const [kva, voltage] = masterSingleTransformerPairs[index % masterSingleTransformerPairs.length];
+  const correct = roundTo((kva * 1000) / voltage, 2);
+
+  return {
+    id: `m-1p-xfmr-${index + 1}`,
+    topic: "calculations",
+    prompt: `A single-phase transformer is rated ${kva} kVA at ${voltage}V on one side. What is the full-load current on that side?`,
+    reference: "Single-phase transformer current formula",
+    correctChoiceId: "a",
+    choices: [
+      { id: "a", text: `${formatNumber(correct)}A`, explanation: `Correct. ${kva} kVA × 1000 ÷ ${voltage}V = ${formatNumber(correct)}A.` },
+      { id: "b", text: `${formatNumber(roundTo(correct / 2, 2))}A`, explanation: "That is half of the calculated current." },
+      { id: "c", text: `${formatNumber(roundTo(correct * 1.25, 2))}A`, explanation: "That adds 125%, which was not asked for." },
+      { id: "d", text: `${formatNumber(roundTo(correct * 2, 2))}A`, explanation: "That doubles the calculated current." },
+    ],
+  };
+});
+
+const masterThreeTransformerPairs = [
+  [30, 208], [45, 208], [75, 208], [112.5, 208], [150, 208],
+  [30, 480], [45, 480], [75, 480], [112.5, 480], [150, 480],
+  [225, 480], [300, 480], [500, 480], [75, 600], [150, 600],
+] as const;
+
+const MASTER_THREE_PHASE_TRANSFORMER_QUESTIONS: Question[] = Array.from({ length: 60 }, (_, index) => {
+  const [kva, voltage] = masterThreeTransformerPairs[index % masterThreeTransformerPairs.length];
+  const correct = roundTo((kva * 1000) / (1.732 * voltage), 2);
+
+  return {
+    id: `m-3p-xfmr-${index + 1}`,
+    topic: "calculations",
+    prompt: `A 3-phase transformer is rated ${kva} kVA at ${voltage}V. Using I = kVA × 1000 ÷ (1.732 × V), what is the full-load current?`,
+    reference: "Three-phase transformer current formula",
+    correctChoiceId: "c",
+    choices: [
+      { id: "a", text: `${formatNumber(roundTo((kva * 1000) / voltage, 2))}A`, explanation: "That ignores the 1.732 factor." },
+      { id: "b", text: `${formatNumber(roundTo(correct / 2, 2))}A`, explanation: "That is too low." },
+      { id: "c", text: `${formatNumber(correct)}A`, explanation: `Correct. ${kva} × 1000 ÷ (1.732 × ${voltage}) = ${formatNumber(correct)}A.` },
+      { id: "d", text: `${formatNumber(roundTo(correct * 1.25, 2))}A`, explanation: "That adds 125%, which was not asked for." },
+    ],
+  };
+});
+
+const masterFeederLoadPairs = [
+  [80, 40], [100, 50], [125, 60], [150, 75], [175, 80], [200, 100],
+  [225, 100], [250, 125], [275, 150], [300, 150], [350, 175], [400, 200],
+  [450, 225], [500, 250],
+] as const;
+
+const MASTER_FEEDER_LOAD_QUESTIONS: Question[] = Array.from({ length: 70 }, (_, index) => {
+  const [noncontinuous, continuous] = masterFeederLoadPairs[index % masterFeederLoadPairs.length];
+  const correct = roundTo(noncontinuous + continuous * 1.25, 2);
+
+  return {
+    id: `m-feeder-load-${index + 1}`,
+    topic: "calculations",
+    prompt: `A feeder supplies ${noncontinuous}A of noncontinuous load and ${continuous}A of continuous load. What minimum ampacity is required before other corrections or adjustments?`,
+    reference: "Feeder continuous and noncontinuous load concept",
+    correctChoiceId: "d",
+    choices: [
+      { id: "a", text: `${noncontinuous + continuous}A`, explanation: "That adds both loads at 100% and misses the continuous-load adder." },
+      { id: "b", text: `${formatNumber(roundTo(noncontinuous * 1.25 + continuous, 2))}A`, explanation: "That applies 125% to the wrong load portion." },
+      { id: "c", text: `${formatNumber(roundTo(correct * 1.1, 2))}A`, explanation: "That is above the calculated minimum." },
+      { id: "d", text: `${formatNumber(correct)}A`, explanation: `Correct. ${noncontinuous}A + (${continuous}A × 125%) = ${formatNumber(correct)}A.` },
+    ],
+  };
+});
+
+const masterMotorProtectionPairs = [
+  [18, 250], [24, 250], [32, 250], [42, 250], [52, 250], [65, 250],
+  [78, 250], [96, 250], [124, 250], [156, 250], [180, 250], [240, 250],
+  [302, 250], [361, 250], [414, 250],
+] as const;
+
+const MASTER_MOTOR_PROTECTION_QUESTIONS: Question[] = Array.from({ length: 60 }, (_, index) => {
+  const [flc, multiplier] = masterMotorProtectionPairs[index % masterMotorProtectionPairs.length];
+  const calculated = roundTo(flc * (multiplier / 100), 2);
+  const standard = nextStandardRating(calculated);
+
+  return {
+    id: `m-motor-ocpd-${index + 1}`,
+    topic: "motors",
+    prompt: `For this practice problem, an inverse time breaker is sized at ${multiplier}% of a motor FLC of ${flc}A. What is the next standard OCPD rating at or above the calculated value?`,
+    reference: "NEC 430.52 and 240.6(A) concept",
+    correctChoiceId: "b",
+    choices: [
+      { id: "a", text: `${formatNumber(calculated)}A`, explanation: "That is the calculated value before selecting a standard rating." },
+      { id: "b", text: `${standard}A`, explanation: `Correct. ${flc}A × ${multiplier}% = ${formatNumber(calculated)}A, then use the next standard rating.` },
+      { id: "c", text: `${nextStandardRating(flc)}A`, explanation: "That uses motor FLC instead of the percentage calculation." },
+      { id: "d", text: `${nextStandardRating(calculated + 100)}A`, explanation: "That is higher than the next standard rating needed here." },
+    ],
+  };
+});
+
+const masterServiceLoads = [
+  112, 128, 145, 168, 190, 215, 236, 260, 285, 315, 340, 360, 390, 420, 445,
+  480, 520, 575, 625, 690, 760,
+] as const;
+
+const MASTER_SERVICE_RATING_QUESTIONS: Question[] = Array.from({ length: 62 }, (_, index) => {
+  const load = masterServiceLoads[index % masterServiceLoads.length];
+  const standard = nextStandardRating(load);
+
+  return {
+    id: `m-service-rating-${index + 1}`,
+    topic: "calculations",
+    prompt: `A service has a calculated load of ${load}A. Using standard ampere ratings, what is the minimum standard service disconnect rating at or above the load?`,
+    reference: "NEC 230.79 and 240.6(A) concept",
+    correctChoiceId: "a",
+    choices: [
+      { id: "a", text: `${standard}A`, explanation: `Correct. ${standard}A is the next standard rating at or above ${load}A.` },
+      { id: "b", text: `${Math.max(15, standardOcpdRatings[Math.max(0, standardOcpdRatings.indexOf(standard as typeof standardOcpdRatings[number]) - 1)])}A`, explanation: "That rating is below the selected standard rating." },
+      { id: "c", text: `${nextStandardRating(load + 75)}A`, explanation: "That is above the minimum standard rating." },
+      { id: "d", text: `${load}A`, explanation: "The question asks for a standard ampere rating." },
+    ],
+  };
+});
+
+const MASTER_EXPANDED_QUESTIONS: Question[] = [
+  ...MASTER_LOOKUP_QUESTIONS,
+  ...MASTER_THREE_PHASE_POWER_QUESTIONS,
+  ...MASTER_SINGLE_PHASE_TRANSFORMER_QUESTIONS,
+  ...MASTER_THREE_PHASE_TRANSFORMER_QUESTIONS,
+  ...MASTER_FEEDER_LOAD_QUESTIONS,
+  ...MASTER_MOTOR_PROTECTION_QUESTIONS,
+  ...MASTER_SERVICE_RATING_QUESTIONS,
+];
+
 const MASTER_QUESTIONS: Question[] = [
   ...MASTER_DEFINITION_QUESTIONS,
   ...MASTER_GROUNDING_QUESTIONS,
@@ -1144,6 +1556,7 @@ const MASTER_QUESTIONS: Question[] = [
   ...MASTER_CONDUIT_QUESTIONS,
   ...MASTER_VOLTAGE_DROP_QUESTIONS,
   ...MASTER_CALCULATION_QUESTIONS,
+  ...MASTER_EXPANDED_QUESTIONS,
 ].slice(0, 500);
 
 function shuffleArray<T>(items: T[]) {
