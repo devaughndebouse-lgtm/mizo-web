@@ -133,6 +133,7 @@ function AppPageInner() {
 
       const session = data.session;
       if (!session) {
+        router.replace("/login");
         return;
       }
 
@@ -286,7 +287,7 @@ function AppPageInner() {
 
         <section className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur sm:p-6">
           <div id="simulator">
-            <Simulator initialTrack={requestedTrack} />
+            <Simulator key={requestedTrack} initialTrack={requestedTrack} />
           </div>
         </section>
       </div>

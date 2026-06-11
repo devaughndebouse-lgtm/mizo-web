@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type TopicId =
   | "mixed"
@@ -1188,6 +1188,7 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [secondsLeft, setSecondsLeft] = useState(EXAM_SECONDS);
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
+  const savedResultKeyRef = useRef<string | null>(null);
   const [progress, setProgress] = useState(() => {
     if (typeof window === "undefined") {
       return { examsTaken: 0, bestScore: 0, lastScore: 0 };
@@ -1231,6 +1232,34 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
     }
     return { correct, total: questions.length };
   }, [answers, questions]);
+  const percent = score.total ? Math.round((score.correct / score.total) * 100) : 0;
+
+  const submitSession = useCallback(() => {
+    if (submitted || !score.total) return;
+
+    const resultKey = `${questions.map((q) => q.id).join("|")}:${score.correct}`;
+    if (savedResultKeyRef.current !== resultKey) {
+      savedResultKeyRef.current = resultKey;
+
+      setProgress((prev) => {
+        const nextProgress = {
+          examsTaken: prev.examsTaken + 1,
+          bestScore: Math.max(prev.bestScore, percent),
+          lastScore: percent,
+        };
+
+        try {
+          window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(nextProgress));
+        } catch {
+          // Progress is nice to have; the simulator should keep working if storage is unavailable.
+        }
+
+        return nextProgress;
+      });
+    }
+
+    setSubmitted(true);
+  }, [percent, questions, score.correct, score.total, submitted]);
 
   useEffect(() => {
     if (!started || submitted || (mode !== "exam" && mode !== "mock")) return;
@@ -1239,7 +1268,7 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           window.clearInterval(timer);
-          setSubmitted(true);
+          submitSession();
           return 0;
         }
         return prev - 1;
@@ -1247,17 +1276,7 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [started, submitted, mode]);
-
-  useEffect(() => {
-    setTrack(initialTrack);
-    setStarted(false);
-    setSubmitted(false);
-    setIndex(0);
-    setAnswers({});
-    setSessionQuestions([]);
-    setSecondsLeft(mode === "mock" ? MOCK_SECONDS : EXAM_SECONDS);
-  }, [initialTrack, mode]);
+  }, [started, submitted, mode, submitSession]);
 
   function reset(nextMode: typeof mode = mode) {
     setStarted(false);
@@ -1265,6 +1284,7 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
     setIndex(0);
     setAnswers({});
     setSessionQuestions([]);
+    savedResultKeyRef.current = null;
     setSecondsLeft(nextMode === "mock" ? MOCK_SECONDS : EXAM_SECONDS);
   }
 
@@ -1302,6 +1322,7 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
     setAnswers({});
     setSubmitted(false);
     setIndex(0);
+    savedResultKeyRef.current = null;
     setSecondsLeft(mode === "mock" ? MOCK_SECONDS : EXAM_SECONDS);
     setStarted(true);
   }
@@ -1409,31 +1430,6 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
   }
 
   if (submitted) {
-    const percent = score.total ? Math.round((score.correct / score.total) * 100) : 0;
-
-    if (typeof window !== "undefined") {
-      const nextProgress = {
-        examsTaken: progress.examsTaken + 1,
-        bestScore: Math.max(progress.bestScore, percent),
-        lastScore: percent,
-      };
-
-      const currentStored = window.localStorage.getItem(PROGRESS_KEY);
-      const currentStoredParsed = currentStored ? JSON.parse(currentStored) : null;
-      const alreadySaved = currentStoredParsed?.lastScore === percent && currentStoredParsed?.examsTaken === nextProgress.examsTaken;
-
-      if (!alreadySaved) {
-        window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(nextProgress));
-        if (
-          nextProgress.examsTaken !== progress.examsTaken ||
-          nextProgress.bestScore !== progress.bestScore ||
-          nextProgress.lastScore !== progress.lastScore
-        ) {
-          setProgress(nextProgress);
-        }
-      }
-    }
-
     return (
       <section className="rounded-xl border bg-white p-5 text-black shadow-sm">
         <h2 className="text-lg font-extrabold">Results</h2>

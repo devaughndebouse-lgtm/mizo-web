@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -224,17 +224,21 @@ function LandingInner() {
   const [demoTrack, setDemoTrack] = useState<"journeyman" | "master">(
     "journeyman"
   );
+  const [demoQuestionIndex, setDemoQuestionIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const demoQuestion = useMemo(() => {
-    const pool =
-      demoTrack === "master"
-        ? MASTER_DEMO_QUESTIONS
-        : JOURNEYMAN_DEMO_QUESTIONS;
-    const index = Math.floor(Math.random() * pool.length);
-    return pool[index];
-  }, [demoTrack]);
+  const demoQuestions =
+    demoTrack === "master" ? MASTER_DEMO_QUESTIONS : JOURNEYMAN_DEMO_QUESTIONS;
+  const demoQuestion = demoQuestions[demoQuestionIndex] ?? demoQuestions[0];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDemoQuestionIndex(Math.floor(Math.random() * demoQuestions.length));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [demoQuestions.length, demoTrack]);
 
   function handleLoginClick(source: string) {
     trackEvent("login_click", { source });
@@ -264,6 +268,7 @@ function LandingInner() {
   function handleDemoTrackChange(track: "journeyman" | "master") {
     trackEvent("demo_track_change", { track });
     setDemoTrack(track);
+    setDemoQuestionIndex(0);
     setSelected(null);
     setSubmitted(false);
   }

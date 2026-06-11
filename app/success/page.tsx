@@ -138,7 +138,7 @@ function SuccessInner() {
             Electrician Feedback
           </p>
           <p className="mt-2 text-sm leading-6 text-white/85">
-            "Mizo helped me pass my exam on the first try. The questions felt exactly like the real test and the simulator made me fast with the code book." 
+            &ldquo;Mizo helped me pass my exam on the first try. The questions felt exactly like the real test and the simulator made me fast with the code book.&rdquo;
           </p>
           <p className="mt-2 text-xs text-white/60">
             — Licensed Electrician

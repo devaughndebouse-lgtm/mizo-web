@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Question = {
@@ -58,9 +58,15 @@ const QUESTIONS: Question[] = [
 ];
 
 export default function PracticeQuestionsPage() {
-  const sample = useMemo(() => {
-    const shuffled = [...QUESTIONS].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
+  const [sample, setSample] = useState(() => QUESTIONS.slice(0, 3));
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const shuffled = [...QUESTIONS].sort(() => Math.random() - 0.5);
+      setSample(shuffled.slice(0, 3));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>(

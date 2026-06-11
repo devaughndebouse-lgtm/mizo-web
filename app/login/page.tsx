@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState, type FormEvent, type ChangeEvent } from "react";
+import { Suspense, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient, type Session } from "@supabase/supabase-js";
 
@@ -120,7 +120,7 @@ function LoginInner() {
 
       setMessage("Magic link sent. Check your email.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err) ?? "Failed to send magic link");
+      setError(err instanceof Error ? err.message : "Failed to send magic link");
     } finally {
       setLoading(false);
     }
@@ -138,9 +138,9 @@ function LoginInner() {
         <form
           className="mt-6 space-y-4"
           onSubmit={(e: FormEvent<HTMLFormElement>) => {
-              e.preventDefault();
-              void sendMagicLink();
-            }}
+            e.preventDefault();
+            void sendMagicLink();
+          }}
         >
           <input
             type="email"
