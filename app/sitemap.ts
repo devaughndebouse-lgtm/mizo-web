@@ -9,6 +9,10 @@ export default function sitemap() {
       lastModified: new Date(),
     },
     {
+      url: "https://www.mizomastery.com/master-login",
+      lastModified: new Date(),
+    },
+    {
       url: "https://www.mizomastery.com/app",
       lastModified: new Date(),
     },

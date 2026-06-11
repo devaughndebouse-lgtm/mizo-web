@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,67 @@ async function getCheckoutSessionTrack(
   return null;
 }
 
+function getSupabaseAdmin() {
+  const url =
+    process.env.SUPABASE_URL?.trim() ??
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  if (!url || !key) return null;
+
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+async function updateAccessFromCheckout(args: {
+  email: string | null;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  subscriptionStatus: string | null;
+  track: "journeyman" | "master" | null;
+}) {
+  if (!args.email) return;
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+
+  const { data: list } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+
+  const existingUser = list?.users.find(
+    (user) => (user.email ?? "").toLowerCase() === args.email?.toLowerCase()
+  );
+
+  if (existingUser && args.track) {
+    await supabase.auth.admin.updateUserById(existingUser.id, {
+      user_metadata: {
+        ...(existingUser.user_metadata ?? {}),
+        last_purchased_track: args.track,
+      },
+    });
+  }
+
+  await supabase.from("mizo_users").upsert(
+    {
+      email: args.email,
+      supabase_user_id: existingUser?.id ?? null,
+      stripe_customer_id:
+        typeof args.stripeCustomerId === "string" ? args.stripeCustomerId : null,
+      stripe_subscription_id: args.stripeSubscriptionId,
+      subscription_status: args.subscriptionStatus,
+      access_active: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "email" }
+  );
+}
+
 export async function GET(req: NextRequest) {
   try {
     const secret = process.env.STRIPE_SECRET_KEY?.trim();
@@ -88,6 +150,20 @@ export async function GET(req: NextRequest) {
     const email =
       session.customer_details?.email ??
       (typeof session.customer_email === "string" ? session.customer_email : null);
+    const stripeCustomerId =
+      typeof session.customer === "string" ? session.customer : session.customer?.id ?? null;
+    const stripeSubscriptionId =
+      typeof session.subscription === "string"
+        ? session.subscription
+        : session.subscription?.id ?? null;
+
+    await updateAccessFromCheckout({
+      email,
+      stripeCustomerId,
+      stripeSubscriptionId,
+      subscriptionStatus: subscription?.status ?? null,
+      track,
+    });
 
     const res = NextResponse.json(
       {
@@ -110,6 +186,17 @@ export async function GET(req: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });
+    if (track) {
+      res.cookies.set({
+        name: "mizo_track",
+        value: track,
+        httpOnly: true,
+        sameSite: "lax",
+        secure: isProd(),
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
     res.headers.set("Cache-Control", "no-store");
     return res;
   } catch (err: unknown) {

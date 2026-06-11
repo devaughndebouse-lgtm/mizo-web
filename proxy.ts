@@ -9,13 +9,16 @@ export function proxy(request: NextRequest) {
   }
 
   const access = request.cookies.get("mizo_access")?.value;
+  const accessTrack = request.cookies.get("mizo_track")?.value;
+  const requestedTrack =
+    request.nextUrl.searchParams.get("track") === "master" ? "master" : "journeyman";
 
-  if (access === "1") {
+  if (access === "1" && (requestedTrack !== "master" || accessTrack === "master")) {
     return NextResponse.next();
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = "/login";
+  url.pathname = requestedTrack === "master" ? "/master-login" : "/login";
   url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
   return NextResponse.redirect(url);
 }

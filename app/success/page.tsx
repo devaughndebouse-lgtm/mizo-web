@@ -71,12 +71,9 @@ function SuccessInner() {
           params.set("email", email);
         }
 
-        if (track) {
-          params.set("track", track);
-        }
-
         const query = params.toString();
-        const nextTarget = query ? `/login?${query}` : "/login";
+        const loginPath = track === "master" ? "/master-login" : "/login";
+        const nextTarget = query ? `${loginPath}?${query}` : loginPath;
         setRedirectTarget(nextTarget);
         setRedirectSeconds(0.9);
 

@@ -10,7 +10,8 @@ function isProd() {
 
 export async function POST(req: Request) {
   try {
-    const { access_token } = await req.json().catch(() => ({}));
+    const { access_token, requested_track } = await req.json().catch(() => ({}));
+    const requestedTrack = requested_track === "master" ? "master" : "journeyman";
 
     if (!access_token || typeof access_token !== "string") {
       return NextResponse.json({ ok: false, error: "Missing access_token" }, { status: 400 });
@@ -35,6 +36,10 @@ export async function POST(req: Request) {
     }
 
     const email = userData.user.email;
+    const purchasedTrack =
+      userData.user.user_metadata?.last_purchased_track === "master"
+        ? "master"
+        : "journeyman";
 
     // Check paid status in your Postgres table
     const { data: row, error: rowErr } = await supabase
@@ -57,10 +62,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const res = NextResponse.json({ ok: true, email }, { status: 200 });
+    if (requestedTrack === "master" && purchasedTrack !== "master") {
+      return NextResponse.json(
+        { ok: false, error: "No active master simulator subscription found for this email" },
+        { status: 403 }
+      );
+    }
+
+    const res = NextResponse.json(
+      { ok: true, email, track: requestedTrack },
+      { status: 200 }
+    );
     res.cookies.set({
       name: "mizo_access",
       value: "1",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd(),
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    res.cookies.set({
+      name: "mizo_track",
+      value: requestedTrack,
       httpOnly: true,
       sameSite: "lax",
       secure: isProd(),

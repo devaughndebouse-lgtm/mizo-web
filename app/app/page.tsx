@@ -80,6 +80,15 @@ const TOPIC_OPTIONS: TopicOption[] = [
   },
 ];
 
+function userHasRequestedTrackAccess(
+  userMetadata: Record<string, unknown> | null | undefined,
+  requestedTrack: "journeyman" | "master"
+) {
+  if (requestedTrack === "journeyman") return true;
+
+  return userMetadata?.last_purchased_track === "master";
+}
+
 function AppPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -110,7 +119,10 @@ function AppPageInner() {
 
     let isMounted = true;
 
-    const verifyAccess = async (email: string) => {
+    const verifyAccess = async (
+      email: string,
+      userMetadata: Record<string, unknown> | null | undefined
+    ) => {
       const { data: accessRow, error: accessError } = await supabase
         .from("mizo_users")
         .select("access_active")
@@ -122,6 +134,11 @@ function AppPageInner() {
       if (accessError || !accessRow?.access_active) {
         await supabase.auth.signOut({ scope: "local" });
         router.replace("/");
+        return;
+      }
+
+      if (!userHasRequestedTrackAccess(userMetadata, requestedTrack)) {
+        router.replace("/master-login?next=/app%3Ftrack%3Dmaster");
         return;
       }
 
@@ -144,7 +161,7 @@ function AppPageInner() {
         return;
       }
 
-      await verifyAccess(userEmail);
+      await verifyAccess(userEmail, session.user.user_metadata);
     });
 
     const {
@@ -167,7 +184,7 @@ function AppPageInner() {
           return;
         }
 
-        await verifyAccess(userEmail);
+        await verifyAccess(userEmail, session.user.user_metadata);
       })();
     });
 
@@ -175,7 +192,7 @@ function AppPageInner() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router, supabase]);
+  }, [requestedTrack, router, supabase]);
 
   async function handleLogout() {
     if (!supabase) {
@@ -184,6 +201,7 @@ function AppPageInner() {
     }
 
     await supabase.auth.signOut({ scope: "local" });
+    await fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => undefined);
     router.replace("/login");
   }
 

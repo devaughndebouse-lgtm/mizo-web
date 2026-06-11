@@ -1669,7 +1669,7 @@ function formatClock(totalSeconds: number) {
 
 export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
   const [topic, setTopic] = useState<TopicId>("mixed");
-  const [track, setTrack] = useState<TrackId>(initialTrack);
+  const [track] = useState<TrackId>(initialTrack);
   const [mode, setMode] = useState<"practice" | "exam" | "mock">("practice");
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -1787,11 +1787,6 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
     reset(mode);
   }
 
-  function setTrackAndReset(nextTrack: TrackId) {
-    setTrack(nextTrack);
-    reset(mode);
-  }
-
   function setModeAndReset(nextMode: typeof mode) {
     setMode(nextMode);
     reset(nextMode);
@@ -1852,15 +1847,10 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
           </div>
 
           <div>
-            <label className="text-sm font-bold text-black">Track</label>
-            <select
-              className="mt-2 rounded border border-black px-3 py-2 text-sm text-black"
-              value={track}
-              onChange={(e) => setTrackAndReset(e.target.value as TrackId)}
-            >
-              <option value="journeyman">Journeyman</option>
-              <option value="master">Master</option>
-            </select>
+            <div className="text-sm font-bold text-black">Track</div>
+            <div className="mt-2 rounded border border-black bg-neutral-100 px-3 py-2 text-sm font-semibold text-black">
+              {track === "master" ? "Master" : "Journeyman"}
+            </div>
           </div>
 
           <div>
