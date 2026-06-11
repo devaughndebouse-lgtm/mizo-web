@@ -1568,8 +1568,84 @@ function shuffleArray<T>(items: T[]) {
   return arr;
 }
 
+function spreadByPrompt(items: Question[]) {
+  const groups = new Map<string, Question[]>();
+
+  for (const item of shuffleArray(items)) {
+    const group = groups.get(item.prompt);
+    if (group) {
+      group.push(item);
+    } else {
+      groups.set(item.prompt, [item]);
+    }
+  }
+
+  const queues = shuffleArray([...groups.values()].map((group) => shuffleArray(group)));
+  const out: Question[] = [];
+
+  while (queues.some((queue) => queue.length > 0)) {
+    for (const queue of queues) {
+      const next = queue.shift();
+      if (next) out.push(next);
+    }
+  }
+
+  return out;
+}
+
+function takeQuestion(queue: Question[], lastPrompt: string | null) {
+  const preferredIndex = queue.findIndex((question) => question.prompt !== lastPrompt);
+  const index = preferredIndex >= 0 ? preferredIndex : 0;
+  const [question] = queue.splice(index, 1);
+  return question;
+}
+
+function alternatingQuestionOrder(items: Question[]) {
+  const topicQueues = TOPICS.map(({ id }) => ({
+    topic: id,
+    questions: spreadByPrompt(items.filter((question) => question.topic === id)),
+  })).filter((queue) => queue.questions.length > 0);
+
+  if (topicQueues.length <= 1) {
+    return spreadByPrompt(items);
+  }
+
+  const out: Question[] = [];
+  let cursor = 0;
+  let lastTopic: TopicId | null = null;
+  let lastPrompt: string | null = null;
+
+  while (topicQueues.some((queue) => queue.questions.length > 0)) {
+    let selectedIndex = -1;
+
+    for (let offset = 0; offset < topicQueues.length; offset += 1) {
+      const index = (cursor + offset) % topicQueues.length;
+      const queue = topicQueues[index];
+      if (queue.questions.length > 0 && queue.topic !== lastTopic) {
+        selectedIndex = index;
+        break;
+      }
+    }
+
+    if (selectedIndex < 0) {
+      selectedIndex = topicQueues.findIndex((queue) => queue.questions.length > 0);
+    }
+
+    const selectedQueue = topicQueues[selectedIndex];
+    const next = takeQuestion(selectedQueue.questions, lastPrompt);
+    if (!next) break;
+
+    out.push(next);
+    lastTopic = next.topic;
+    lastPrompt = next.prompt;
+    cursor = (selectedIndex + 1) % topicQueues.length;
+  }
+
+  return out;
+}
+
 function buildMockSet(source: Question[], count: number, suffix: string) {
-  const base = shuffleArray(source);
+  const base = alternatingQuestionOrder(source);
   const out: Question[] = [];
 
   while (out.length < count) {
@@ -1729,7 +1805,7 @@ export function Simulator({ initialTrack = "journeyman" }: SimulatorProps) {
             MOCK_QUESTION_COUNT,
             track === "master" ? "mx" : "jx"
           )
-        : shuffleArray(baseQuestions);
+        : alternatingQuestionOrder(baseQuestions);
 
     setSessionQuestions(randomized);
     setAnswers({});
