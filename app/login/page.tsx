@@ -5,14 +5,23 @@ import { Suspense, useEffect, useMemo, useState, type ChangeEvent, type FormEven
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient, type Session } from "@supabase/supabase-js";
 
+function getSafeNextPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/app";
+  }
+
+  return value;
+}
+
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const authBaseUrl =
     typeof window !== "undefined"
-      ? window.location.origin
+      ? window.location.origin.replace(/\/$/, "")
       : (process.env.NEXT_PUBLIC_APP_URL ?? "https://www.mizomastery.com").replace(/\/$/, "");
+  const nextPath = getSafeNextPath(searchParams.get("next"));
 
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,6 +40,27 @@ function LoginInner() {
 
   useEffect(() => {
     if (!supabase) return;
+
+    const unlockSimulatorAccess = async (accessToken: string) => {
+      const res = await fetch("/api/login-access", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ access_token: accessToken }),
+      });
+
+      const data: { error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "No active simulator access found.");
+      }
+    };
+
+    const finishAuthenticatedLogin = async (accessToken: string) => {
+      await unlockSimulatorAccess(accessToken);
+      router.replace(nextPath);
+    };
 
     const verifyAccess = async (email: string) => {
       const { data: accessRow, error: accessError } = await supabase
@@ -55,7 +85,7 @@ function LoginInner() {
       const code = searchParams.get("code");
 
       if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (error) {
           setError(error.message ?? "Unable to complete login.");
@@ -64,17 +94,37 @@ function LoginInner() {
 
         const session = await supabase.auth.getSession();
         const userEmail = session.data.session?.user.email;
+        const accessToken = data.session?.access_token ?? session.data.session?.access_token;
+
+        if (!accessToken) {
+          setError("Unable to complete login. Please request a new magic link.");
+          return;
+        }
 
         if (userEmail && (await verifyAccess(userEmail))) {
-          router.replace("/app");
+          try {
+            await finishAuthenticatedLogin(accessToken);
+          } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Unable to unlock simulator access.");
+          }
         }
         return;
       }
 
       const { data } = await supabase.auth.getSession();
       const userEmail = data.session?.user.email;
+      const accessToken = data.session?.access_token;
       if (userEmail && (await verifyAccess(userEmail))) {
-        router.replace("/app");
+        if (!accessToken) {
+          setError("Unable to restore login. Please request a new magic link.");
+          return;
+        }
+
+        try {
+          await finishAuthenticatedLogin(accessToken);
+        } catch (err: unknown) {
+          setError(err instanceof Error ? err.message : "Unable to unlock simulator access.");
+        }
       } else if (!userEmail) {
         setAccessDenied(false);
       }
@@ -89,16 +139,18 @@ function LoginInner() {
       if (event === "SIGNED_IN" && userEmail) {
         void (async () => {
           if (await verifyAccess(userEmail)) {
-            router.replace("/app");
+            await finishAuthenticatedLogin(session.access_token);
           }
-        })();
+        })().catch((err: unknown) => {
+          setError(err instanceof Error ? err.message : "Unable to unlock simulator access.");
+        });
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [router, searchParams, supabase]);
+  }, [router, searchParams, supabase, nextPath]);
 
   async function sendMagicLink() {
     setLoading(true);
@@ -112,7 +164,7 @@ function LoginInner() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${authBaseUrl}/login`,
+          emailRedirectTo: `${authBaseUrl}/login?next=${encodeURIComponent(nextPath)}`,
         },
       });
 

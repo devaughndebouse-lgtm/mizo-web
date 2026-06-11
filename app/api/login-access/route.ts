@@ -16,7 +16,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Missing access_token" }, { status: 400 });
     }
 
-    const url = process.env.SUPABASE_URL?.trim();
+    const url =
+      process.env.SUPABASE_URL?.trim() ??
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
     if (!url || !serviceKey) {
       return NextResponse.json({ ok: false, error: "Supabase server keys not configured" }, { status: 500 });
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
     // Check paid status in your Postgres table
     const { data: row, error: rowErr } = await supabase
       .from("mizo_users")
-      .select("subscription_status")
+      .select("access_active, subscription_status")
       .eq("email", email)
       .maybeSingle();
 
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     const status = row?.subscription_status ?? null;
-    const okPaid = status === "active" || status === "trialing";
+    const okPaid = row?.access_active === true || status === "active" || status === "trialing";
 
     if (!okPaid) {
       return NextResponse.json(
